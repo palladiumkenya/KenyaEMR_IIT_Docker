@@ -24,7 +24,8 @@ def clean_lab(data, start_date):
 
     # Let's filter to VLs and CD4
     # First, let's make testname lower case
-    data['testname'] = data['testname'].str.lower()
+    # Modify the testname column in place   
+    data.loc[:, 'testname'] = data['testname'].str.lower()
     
     # Now let's adjust testname so that if it contains the strings % of percent,
     # we consider it a CD4 test; if it contains the string viral or vl, we consider it a VL test
@@ -32,8 +33,8 @@ def clean_lab(data, start_date):
     # Note: this is a bit of a hack, but it works for now
     # Adjust testname based on the specified conditions
     # Ensure testname has no None or NaN values
-    data['testname'] = data['testname'].fillna('')
-    data['testname'] = data['testname'].apply(
+    data.loc[:, 'testname'] = data['testname'].fillna('')
+    data.loc[:, 'testname'] = data['testname'].apply(
         lambda x: 'CD4' if 'cd4' in x and '%' not in x and 'percent' not in x else
                 'VL' if 'viral' in x or 'vl' in x else
                 'Other'
