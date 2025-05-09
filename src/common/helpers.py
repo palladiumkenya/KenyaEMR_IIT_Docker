@@ -34,6 +34,12 @@ def dedup_lab(df, key_var, contact_var, labname_var, labresult_var):
                 return "suppressed"
             elif row['testresultnum'] >= 200:
                 return "nonsuppressed"
+        # for CD4, if the testresultnum is NaN, return None because
+        # it's never a string that can be converted to a number
+        # and we don't want to keep it
+        elif pd.isna(row['testresultnum']):
+            return None
+        # if the testresultnum is not NaN, we can classify it
         elif row[labname_var] == "CD4":
             if row['testresultnum'] < 200:
                 return "NoAHD"
@@ -42,6 +48,9 @@ def dedup_lab(df, key_var, contact_var, labname_var, labresult_var):
         return None
 
     df['testresultcat'] = df.apply(classify, axis=1)
+
+    # Drop rows from CD4 that could not be classified
+    df = df[~((df[labname_var] == "CD4") & (df['testresultnum'].isna()))]
 
     # Split into single and multi
     df_single = df[df['is_multi'] == 0]
