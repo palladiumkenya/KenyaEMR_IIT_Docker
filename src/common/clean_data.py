@@ -47,3 +47,46 @@ def clean_lab(data, start_date):
     data = helpers.dedup_lab(data, 'key', 'orderedbydate', 'testname', 'testresult')
     
     return data
+
+def clean_pharmacy(data, start_date, end_date):
+    """
+    Clean the pharmacy data by removing unnecessary columns and renaming others.
+    """
+    # make column names lower case
+    data.columns = data.columns.str.lower()
+
+    # Concatenate patientpkhash and sitecode to create a unique key
+    # first make sitecode a string
+    data['sitecode'] = data['sitecode'].astype(str)
+    # now concatenate
+    data['key'] = data['patientpkhash'] + data['sitecode']
+
+    # parse the dispensedate and expectedreturn columns
+    data['dispensedate'] = data['dispensedate'].apply(helpers.parse_long_date)
+    data['expectedreturn'] = data['expectedreturn'].apply(helpers.parse_long_date)
+
+    # Filter data to only include treatmenttype that is either ARV or PMTCT 
+    data.loc[:, 'treatmenttype'] = data['treatmenttype'].str.lower()
+    data.loc[:, 'treatmenttype'] = data['treatmenttype'].fillna('')
+    data = data.loc[data['treatmenttype'].isin(['arv', 'pmtct'])]
+
+    # Filter the data to only include records after the start_date
+    # Convert start_date to datetime.date
+    start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+    end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    data = data.loc[data['dispensedate'] >= start_date]
+    data = data.loc[data['dispensedate'] <= end_date]
+
+    # remove illogical return dates
+    data = helpers.remove_date(data, 'dispensedate', 'expectedreturn')
+
+    # deduplicate pharmacy data using specialized function
+    data = helpers.dedup_common(data, 'key', 'dispensedate', 'expectedreturn')
+
+    # impute the expected return date where needed
+    data = helpers.impute_date(data, 'key', 'dispensedate', 'expectedreturn')
+
+    # keep the following columns: key, sitecode, dispensedate, nad_imputed, nad_imputation_flag, drug
+    data = data[['key', 'sitecode', 'dispensedate', 'nad_imputed', 'nad_imputation_flag', 'drug']]
+
+    return data
