@@ -4,8 +4,20 @@ from src.common import clean_data
 
 lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data.get_data(prediction = False)
 
-# Clean lab data
+# Clean lab and pharmacy data
 lab = clean_data.clean_lab(lab, start_date = "2020-01-01")
 pharmacy = clean_data.clean_pharmacy(pharmacy, start_date = "2020-01-01", end_date = "2025-01-15")
-print(pharmacy.shape)
-print(pharmacy.columns)
+
+# Clean visits data, but first merge with dem to get demographics
+# Merge visits with demographics (dem) on the "key" column
+visits = visits.merge(
+    dem[['key', 'Sex', 'MaritalStatus', 'EducationLevel', 'Occupation', 
+         'ARTOutcomeDescription', 'StartARTDate', 'DOB']],
+    on='key',
+    how='inner'  
+)
+visits = clean_data.clean_visits(visits, start_date = "2020-01-01", end_date = "2025-01-15")
+print(visits.shape)
+print(visits.columns)
+
+

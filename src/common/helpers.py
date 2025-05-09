@@ -12,8 +12,12 @@ def parse_long_date(date_col):
     Returns:
         datetime.date: The parsed date object.
     """
-    # Take the first 10 characters and parse them into a date
-    return datetime.strptime(str(date_col)[:10], "%Y-%m-%d").date()
+    try:
+        # Convert to string and take the first 10 characters
+        return datetime.strptime(str(date_col)[:10], "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        # Return None if parsing fails
+        return None
 
 def remove_date(df, contact_var, return_var):
     """

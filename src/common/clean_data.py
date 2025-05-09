@@ -90,3 +90,47 @@ def clean_pharmacy(data, start_date, end_date):
     data = data[['key', 'sitecode', 'dispensedate', 'nad_imputed', 'nad_imputation_flag', 'drug']]
 
     return data
+
+def clean_visits(data, start_date, end_date):
+    """
+    Clean the visits data by removing unnecessary columns and renaming others.
+    """
+    # make column names lower case
+    data.columns = data.columns.str.lower()
+
+    # Concatenate patientpkhash and sitecode to create a unique key
+    # first make sitecode a string
+    data['sitecode'] = data['sitecode'].astype(str)
+    # now concatenate
+    data['key'] = data['patientpkhash'] + data['sitecode']
+
+    # make the values in each column lower case except for the key column
+    cols_to_convert = data.columns.difference(['key'])
+    data[cols_to_convert] = data[cols_to_convert].applymap(
+        lambda x: x.lower() if isinstance(x, str) else x
+    )
+
+    # parse the visitdate column
+    data['visitdate'] = data['visitdate'].apply(helpers.parse_long_date)
+    data['nextappointmentdate'] = data['nextappointmentdate'].apply(helpers.parse_long_date)
+
+    # Filter the data to only include records after the start_date
+    # Convert start_date to datetime.date
+    start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+    end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    data = data[data['visitdate'] >= start_date]
+    data = data[data['visitdate'] <= end_date]
+
+    # remove whitespace from all columns
+    data = data.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+
+    # remove illogical return dates
+    data = helpers.remove_date(data, 'visitdate', 'nextappointmentdate')
+
+    # deduplicate visit data using specialized function
+    data = helpers.dedup_common(data, 'key', 'visitdate', 'nextappointmentdate')
+
+    # impute the expected return date where needed
+    data = helpers.impute_date(data, 'key', 'visitdate', 'nextappointmentdate')
+
+    return data
