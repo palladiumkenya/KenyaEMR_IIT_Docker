@@ -55,24 +55,22 @@ def clean_who(who_vec):
     return who_vec
 
 def clean_adherence(adh_vec):
-
+    
     # make lowercase
     adh_vec = adh_vec.str.lower()
 
-    # first, use regex to remove everything after the first pipe character "|"
-    # including the pipe character itself
-    # and replace it with an empty string
-    # this is done to remove any additional information after the first pipe
-    # for example, "good|fair" becomes "good"
+    # remove everything after the first pipe character "|"
     adh_vec = adh_vec.str.replace(r'\|.*', '', regex=True)
 
-    # next, use regex to update the values in adh_vec using the following logic:
-    # 1. If the string contains "good", replace it with 1
-    # 2. If the string contains "fair or poor", replace it with 0
-    # 3. If the string is empty, replace it with None
+    # replace values
     adh_vec = adh_vec.str.replace(r'good', '1', regex=True)
     adh_vec = adh_vec.str.replace(r'fair|poor', '0', regex=True)
-    adh_vec = adh_vec.str.replace(r'^\s*$', 'None', regex=True)
+
+    # set empty strings to None
+    adh_vec = adh_vec.replace(r'^\s*$', None, regex=True)
+
+    # set to None if not '1' or '0'
+    adh_vec = adh_vec.where(adh_vec.isin(['1', '0']), None)
 
     return adh_vec
 
@@ -91,7 +89,7 @@ def clean_stabilityassessment(stab_assess_vec):
     stab_assess_vec = stab_assess_vec.str.lower()
 
     # Identify blank (empty or whitespace) values
-    blank_mask = np.where(stab_assess_vec.isna(), True, False)
+    blank_mask = stab_assess_vec.isna() | (stab_assess_vec.str.strip() == "")
 
     # if the string contains "un" or "not", set to 0, else 1
     stab_assess_vec = np.where(stab_assess_vec.str.contains('un|not', na=False), 0, 1)
@@ -195,6 +193,9 @@ def regimen_switch(df):
     df['visitdate'] = pd.to_datetime(df['visitdate'], errors='coerce')
     df = df.sort_values(by=['key', 'visitdate'])
 
+    # Treat empty or whitespace-only currentregimen as missing
+    df['currentregimen'] = df['currentregimen'].replace(r'^\s*$', None, regex=True)
+
     # Initialize empty series to collect results
     result_series = pd.Series(index=df.index, dtype="Int64")
 
@@ -206,7 +207,7 @@ def regimen_switch(df):
         switch_counts = []
 
         for i, this_date in enumerate(visitdates):
-            mask = (visitdates < this_date) & (visitdates >= this_date - pd.Timedelta(days=365))
+            mask = (visitdates <= this_date) & (visitdates >= this_date - pd.Timedelta(days=365))
             prev_regimens = regimens[mask].dropna().unique()
             switch_counts.append(len(prev_regimens))
 
@@ -217,7 +218,6 @@ def regimen_switch(df):
     df['regimen_switch'] = result_series.apply(
         lambda x: None if x == 0 else (0 if x == 1 else 1)
     )
-
     return df
 
 
