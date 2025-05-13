@@ -4,6 +4,7 @@ from src.common import clean_data
 from src.common import visit_features
 from src.common import dem_features
 from src.common import create_target
+from src.common import target_features
 
 lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data.get_data(prediction = False)
 
@@ -23,5 +24,6 @@ visits = clean_data.clean_visits(visits, start_date = "2020-01-01", end_date = "
 visits = visit_features.prep_visit_features(visits)
 visits = dem_features.prep_demographics(visits)
 targets = create_target.create_target(visits, pharmacy, dem)
+targets = target_features.prep_target_visit_features(targets, visits)
 
 
