@@ -1,6 +1,9 @@
 # Local application imports
 from src.common import get_data
 from src.common import clean_data
+from src.common import visit_features
+
+import pandas as pd
 
 lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data.get_data(prediction = False)
 
@@ -17,7 +20,8 @@ visits = visits.merge(
     how='inner'  
 )
 visits = clean_data.clean_visits(visits, start_date = "2020-01-01", end_date = "2025-01-15")
-print(visits.shape)
-print(visits.columns)
+
+visits = visit_features.prep_visit_features(visits)
 
 
+print(pd.crosstab(visits['pregnant'], visits['sex'], dropna=False))
