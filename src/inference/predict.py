@@ -15,8 +15,9 @@ lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data(prediction = True,
 
 lab = clean_data.clean_lab(lab, start_date = "2020-01-01")
 pharmacy = clean_data.clean_pharmacy(pharmacy, start_date = "2020-01-01", end_date = "2025-01-15")
-visits = clean_data.clean_visits(visits, dem_df, start_date = "2020-01-01", end_date = "2025-01-15")
+visits = clean_data.clean_visits(visits, dem, start_date = "2020-01-01", end_date = "2025-01-15")
 visits = visit_features.prep_visit_features(visits)
 visits = dem_features.prep_demographics(visits)
 targets = create_target.create_target(visits, pharmacy, dem)
 targets = target_features.prep_target_visit_features(targets, visits)
+targets = target_features.prep_target_lab_features(targets, lab)

@@ -14,6 +14,8 @@ def prep_demographics(df):
     df = parse_nad_imputed(df)
     # calculate daystonextappointment as the difference in days between nad_imputed and visitdate
     df = calculate_daystonextappointment(df)
+    # calculate timeonart as the difference in months between visitdate and startartdate
+    df = calculate_timeonart(df)
     # calculate timeatfacility as the difference in months between visitdate and the earliest visitdate for each key
     df = calculate_timeatfacility(df)
     # create a flag called firstvisit if the visitdate is the earliest visitdate for that key

@@ -171,3 +171,108 @@ def prep_target_pharmacy_features(targets_df, pharmacy_df):
     ).to_pandas()
 
     return targets_df
+
+def prep_target_lab_features(targets_df, lab_df):
+    """
+    Prepares target lab features by merging the targets DataFrame with the lab DataFrame.
+
+    Parameters:
+    - targets_df (pd.DataFrame): The DataFrame containing target data.
+    - lab_df (pd.DataFrame): The DataFrame containing lab data.
+
+    Returns:
+    - pd.DataFrame: A DataFrame containing the merged target lab features.
+    """
+    # we'll need to join vl and cd4 data separately onto targets_df since they
+    # can be taken on different days
+    # first, get vl data
+    vl_df = lab_df[lab_df['testname'] == 'VL']
+    # rename testrestultcat to vl
+    vl_df['vl'] = vl_df['testresultcat']
+    vl_df = vl_df[['key', 'orderedbydate', 'vl']]
+    
+    targets_df['visitdate'] = pd.to_datetime(targets_df['visitdate'])
+    vl_df['orderedbydate'] = pd.to_datetime(vl_df['orderedbydate'])
+
+    # do rolling join with targets_df
+    targets_df = targets_df.sort_values(['key', 'visitdate'], ascending=[True, True]).reset_index(drop=True)
+    vl_df = vl_df.sort_values(['key', 'orderedbydate'], ascending=[True, True]).reset_index(drop=True)
+
+    targets_df = pl.from_pandas(targets_df)
+    vl_df = pl.from_pandas(vl_df)
+
+    targets_df = targets_df.join_asof(
+        vl_df,
+        left_on="visitdate",
+        right_on="orderedbydate",
+        by="key",
+        strategy="backward"
+    ).with_columns(
+        (pl.col("visitdate") - pl.col("orderedbydate")).dt.total_days().alias("days_diff")
+    ).with_columns(
+        pl.when((pl.col("days_diff") > 365) | (pl.col("days_diff") < 0))
+        .then(None)
+        .otherwise(pl.col("vl"))
+        .alias("most_recent_vl")
+    ).drop("days_diff", "orderedbydate", "vl").to_pandas()
+
+    # where most_recent_vl is None, if timeonart is less than 6 months,
+    # then set to "earlyart". Otherwise, if most_recent_vl is none, 
+    # time on art is greater than six months but timeatfacility is less than
+    # 6 months, then set to "restart". finally, any remaining missing
+    # most_recent_vl should be set to "novalidvl".
+    def classify_vl(row):
+        if pd.isnull(row['most_recent_vl']):
+            if pd.notnull(row['timeonart']) and row['timeonart'] <= 6:
+                return 'earlyart'
+            elif (
+                pd.notnull(row['timeonart']) and row['timeonart'] > 6 and
+                pd.notnull(row['timeatfacility']) and row['timeatfacility'] <= 6
+            ):
+                return 'restart'
+            else:
+                return 'novalidvl'
+        else:
+            return row['most_recent_vl']
+
+    targets_df['most_recent_vl'] = targets_df.apply(classify_vl, axis=1)
+
+    # now, let's repeat the process for cd4 data
+    cd4_df = lab_df[lab_df['testname'] == 'CD4']
+    # rename testrestultcat to cd4
+    cd4_df['cd4'] = cd4_df['testresultcat']
+    cd4_df = cd4_df[['key', 'orderedbydate', 'cd4']]
+    cd4_df['orderedbydate'] = pd.to_datetime(cd4_df['orderedbydate'], errors='coerce')
+    # do rolling join with targets_df
+    targets_df = targets_df.sort_values(['key', 'visitdate'], ascending=[True, True]).reset_index(drop=True)
+    cd4_df = cd4_df.sort_values(['key', 'orderedbydate'], ascending=[True, True]).reset_index(drop=True)
+    targets_df = pl.from_pandas(targets_df)
+    cd4_df = pl.from_pandas(cd4_df)
+
+    targets_df = targets_df.join_asof(
+        cd4_df,
+        left_on="visitdate",
+        right_on="orderedbydate",
+        by="key",          # join by group      
+        strategy="backward"       # or 'forward' or 'nearest'
+    ).with_columns(
+        (pl.col("visitdate") - pl.col("orderedbydate")).dt.total_days().alias("days_diff")
+    ).with_columns(
+        pl.when((pl.col("days_diff") > 365) | (pl.col("days_diff") < 0))
+        .then(None)
+        .otherwise(pl.col("cd4"))
+        .alias("most_recent_cd4")
+    ).drop("days_diff", "orderedbydate").to_pandas()
+    
+    # finally, create a variable called ahd.
+    # if age is less than 5 or cd4 is "YesAHD" or whostage is 3 or 4, then ahd = 1
+    # else ahd = 0
+    targets_df['ahd'] = targets_df.apply(
+        lambda x: 1 if (x['age'] < 5) or (x['most_recent_cd4'] == 'YesAHD') or (x['whostage'] in [3, 4]) else 0,
+        axis=1
+    )
+
+    # drop most_recent_cd4 column
+    targets_df = targets_df.drop(columns=['most_recent_cd4', 'cd4'])
+
+    return targets_df

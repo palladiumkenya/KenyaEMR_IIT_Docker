@@ -17,6 +17,4 @@ visits = dem_features.prep_demographics(visits)
 targets = create_target.create_target(visits, pharmacy, dem)
 targets = target_features.prep_target_visit_features(targets, visits)
 targets = target_features.prep_target_pharmacy_features(targets, pharmacy)
-
-print(targets.columns)
-print(targets.shape)
+targets = target_features.prep_target_lab_features(targets, lab)
