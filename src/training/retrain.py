@@ -25,5 +25,3 @@ visits = visit_features.prep_visit_features(visits)
 visits = dem_features.prep_demographics(visits)
 targets = create_target.create_target(visits, pharmacy, dem)
 targets = target_features.prep_target_visit_features(targets, visits)
-
-

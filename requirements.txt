@@ -2,3 +2,5 @@ pandas
 pylint
 pytest
 numpy
+polars
+pyarrow
