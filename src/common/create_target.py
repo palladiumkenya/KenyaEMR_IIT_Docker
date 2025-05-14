@@ -146,6 +146,7 @@ def create_target(visits_df, pharmacy_df, dem_df):
     # concatenate the two dataframes
     target_df = pd.concat([other_visits, most_recent_visit], axis=0)
     # drop the num_visit and actualreturndate columns
-    target_df = target_df.drop(columns=['num_visit', 'artoutcomedescription', 'type'])
+    target_df = target_df.drop(columns=['num_visit', 'actualreturndate',
+                                         'artoutcomedescription', 'type'])
 
     return target_df

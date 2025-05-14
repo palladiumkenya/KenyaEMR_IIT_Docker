@@ -49,7 +49,7 @@ def prep_target_visit_features(targets_df, visits_df):
     # We want a rolling join, with the visit just before the target visit
     targets_df['join_time'] = targets_df['visitdate'] #- pd.Timedelta('1ns')
     visits_df['join_time'] = visits_df['visitdate']
-    visits_df = visits_df.drop(columns=['visitdate', 'sitecode'])
+    visits_df = visits_df.drop(columns=['visitdate', 'sitecode', 'nad_imputation_flag', 'nad_imputed'])
 
     targets_df['join_time'] = pd.to_datetime(targets_df['join_time'])
     visits_df['join_time'] = pd.to_datetime(visits_df['join_time'])
@@ -68,14 +68,6 @@ def prep_target_visit_features(targets_df, visits_df):
         by="key",             # join by group
         strategy="backward"       # or 'forward' or 'nearest'
     ).to_pandas()
-    
-    # targets_df = pd.merge_asof(
-    #     targets_df,
-    #     visits_df,
-    #     by='key',
-    #     on='join_time',
-    #     direction='backward'  
-    # )
 
     ## Lateness metrics
     # first, clean up visitdiff. if visitdiff is less than 0, then set to 0.
@@ -85,7 +77,7 @@ def prep_target_visit_features(targets_df, visits_df):
 
     # create lastvd column as visitdiff from the previous visit
     targets_df['lastvd'] = targets_df.groupby('key')['visitdiff'].shift(1)
-
+    targets_df = targets_df.drop(columns=['join_time', 'visitdiff'])
     # create three binaries. 
     # if lastvd is greater than 0, then late = 1, else late = 0
     # if lastvd is greater than 14, then late14 = 1, else late14 = 0
@@ -136,5 +128,46 @@ def prep_target_visit_features(targets_df, visits_df):
     targets_df['late30_last10'] = targets_df.groupby('key')['late30'].transform(
         lambda x: x.rolling(window=10, min_periods=1).sum()
     )
+
+    return targets_df
+
+def prep_target_pharmacy_features(targets_df, pharmacy_df):
+    """
+    Prepares target pharmacy features by merging the targets DataFrame with the pharmacy DataFrame.     
+
+    Parameters:
+    - targets_df (pd.DataFrame): The DataFrame containing target data.
+    - pharmacy_df (pd.DataFrame): The DataFrame containing pharmacy data.
+
+    Returns:
+    - pd.DataFrame: A DataFrame containing the merged target pharmacy features.
+    """
+    # first, create a new column in pharmacy_df called optimizedregimen that is 1
+    # if the drug variable contains the string "DTG", else 0
+    pharmacy_df['optimizedhivregimen'] = pharmacy_df['drug'].apply(
+        lambda x: 1 if 'DTG' in x else 0
+    )
+
+    # select key, visitdate in place of dispensedate, and optimizedregimen
+    pharmacy_df['visitdate'] = pharmacy_df['dispensedate']
+    pharmacy_df['visitdate'] = pd.to_datetime(pharmacy_df['visitdate'], errors='coerce')
+    pharmacy_df = pharmacy_df[['key', 'visitdate', 'optimizedhivregimen']]
+
+    pharmacy_df['key'] = pharmacy_df['key'].astype(str)
+
+    # do rolling join with targets_df
+    targets_df = targets_df.sort_values(['key', 'visitdate'], ascending=[True, True]).reset_index(drop=True)
+    pharmacy_df = pharmacy_df.sort_values(['key', 'visitdate'], ascending=[True, True]).reset_index(drop=True)
+
+    targets_df = pl.from_pandas(targets_df)
+    pharmacy_df = pl.from_pandas(pharmacy_df)
+
+    targets_df = targets_df.join_asof(
+        pharmacy_df,
+        left_on="visitdate",
+        right_on="visitdate",
+        by="key",             # join by group
+        strategy="backward"       # or 'forward' or 'nearest'
+    ).to_pandas()
 
     return targets_df

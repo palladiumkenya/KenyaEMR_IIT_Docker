@@ -91,18 +91,28 @@ def clean_pharmacy(data, start_date, end_date):
 
     return data
 
-def clean_visits(data, start_date, end_date):
+def clean_visits(data, dem_df, start_date, end_date):
     """
     Clean the visits data by removing unnecessary columns and renaming others.
     """
     # make column names lower case
     data.columns = data.columns.str.lower()
+    dem_df.columns = dem_df.columns.str.lower()
 
+    # first, create key variables
     # Concatenate patientpkhash and sitecode to create a unique key
     # first make sitecode a string
     data['sitecode'] = data['sitecode'].astype(str)
     # now concatenate
     data['key'] = data['patientpkhash'] + data['sitecode']
+    
+    # first, merge visits with demographics (dem) on the "key" column
+    data = data.merge(
+        dem_df[['key', 'sex', 'maritalstatus', 'educationlevel', 'occupation', 
+            'artoutcomedescription', 'startartdate', 'dob']],
+        on='key',
+        how='inner'  
+    )
 
     # make the values in each column lower case except for the key column
     cols_to_convert = data.columns.difference(['key'])

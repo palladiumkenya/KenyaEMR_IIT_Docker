@@ -8,20 +8,15 @@ from src.common import target_features
 
 lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data.get_data(prediction = False)
 
-# Clean lab and pharmacy data
+# Run cleaning and feature preparation functions
 lab = clean_data.clean_lab(lab, start_date = "2020-01-01")
 pharmacy = clean_data.clean_pharmacy(pharmacy, start_date = "2020-01-01", end_date = "2025-01-15")
-
-# Clean visits data, but first merge with dem to get demographics
-# Merge visits with demographics (dem) on the "key" column
-visits = visits.merge(
-    dem[['key', 'Sex', 'MaritalStatus', 'EducationLevel', 'Occupation', 
-         'ARTOutcomeDescription', 'StartARTDate', 'DOB']],
-    on='key',
-    how='inner'  
-)
-visits = clean_data.clean_visits(visits, start_date = "2020-01-01", end_date = "2025-01-15")
+visits = clean_data.clean_visits(visits, dem, start_date = "2020-01-01", end_date = "2025-01-15")
 visits = visit_features.prep_visit_features(visits)
 visits = dem_features.prep_demographics(visits)
 targets = create_target.create_target(visits, pharmacy, dem)
 targets = target_features.prep_target_visit_features(targets, visits)
+targets = target_features.prep_target_pharmacy_features(targets, pharmacy)
+
+print(targets.columns)
+print(targets.shape)
