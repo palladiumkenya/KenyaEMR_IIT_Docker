@@ -6,6 +6,9 @@ from src.common import dem_features
 from src.common import create_target
 from src.common import target_features
 
+# time how long it takes to run the script
+import time
+start_time = time.time()
 lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data.get_data(prediction = False)
 
 # Run cleaning and feature preparation functions
@@ -18,3 +21,7 @@ targets = create_target.create_target(visits, pharmacy, dem)
 targets = target_features.prep_target_visit_features(targets, visits)
 targets = target_features.prep_target_pharmacy_features(targets, pharmacy)
 targets = target_features.prep_target_lab_features(targets, lab)
+
+# end time
+end_time = time.time()
+print("Time taken to run the script: ", end_time - start_time, " seconds")
