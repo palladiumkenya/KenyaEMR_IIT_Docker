@@ -1,156 +1,171 @@
 import sqlite3
 import pandas as pd
+import boto3
+import pyreadr
+import tempfile
 
-def get_data(prediction = False, patientPK = None, sitecode = None):
+def get_data(aws = False, prediction = False, patientPK = None, sitecode = None):
 
-    # Connect to the SQLite database (or create it if it doesn't exist)
-    connection = sqlite3.connect('./data/iit_test.sqlite')
+    # Initialize variables to None
+    pharmacy = lab = visits = dem = mfl = dhs = txcurr = None
 
-    if prediction:
+    # If aws is True, then read in pharmacy, lab, visits and dem data from S3
+    if aws:
 
-        # Create a cursor object to interact with the database
-        cursor = connection.cursor()
+        s3 = boto3.client("s3")
+        bucket_name = 'kehmisjan2025'   
 
-        # Define the SQL query to fetch data from the 'lab' table
-        query = "SELECT * FROM lab WHERE PatientPKHash = ? AND SiteCode = ?"
-        
-        # Execute the query with parameters
-        cursor.execute(query, (patientPK, sitecode))
+        # Define the list of files to download  
+        files = [
+            'pharmacy_all_feb2025.rds',
+            'labs_all_feb2025.rds',
+            'visits_all_feb2025.rds',
+            'dem_all_may2025.rds']
 
-        # Fetch all rows from the executed query
-        rows = cursor.fetchall()
+        # Now, read them in one by one and store them in separate dataframes called pharmacy, lab, visits, dem
+        for file_key in files:  
+            with tempfile.NamedTemporaryFile(suffix=".rds") as tmp_file:
+                print(file_key)
+                s3.download_fileobj(Bucket=bucket_name, Key=file_key, Fileobj=tmp_file)
+                tmp_file.seek(0)
+                result = pyreadr.read_r(tmp_file.name)
+                
+                # Extract the DataFrame from the result
+                if file_key == 'pharmacy_all_feb2025.rds':
+                    pharmacy = result[None]
+                elif file_key == 'labs_all_feb2025.rds':
+                    lab = result[None]
+                elif file_key == 'visits_all_feb2025.rds':
+                    visits = result[None]
+                elif file_key == 'dem_all_may2025.rds':
+                    dem = result[None]
 
-        # Create a DataFrame from the fetched rows
-        lab = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
+        # Check that all variables are loaded
+        if any(x is None for x in [lab, pharmacy, visits, dem]):
+            raise ValueError("One or more dataframes (lab, pharmacy, visits, dem) were not loaded from S3. Check file names and S3 bucket.")
 
-        # Define the SQL query to fetch data from the 'pharmacy' table
-        query = "SELECT * FROM pharmacy WHERE PatientPKHash = ? AND SiteCode = ?"
-        
-        # Execute the query with parameters
-        cursor.execute(query, (patientPK, sitecode))
 
-        # Fetch all rows from the executed query
-        rows = cursor.fetchall()
-
-        # Create a DataFrame from the fetched rows
-        pharmacy = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
-
-        # Define the SQL query to fetch data from the 'visits' table
-        query = "SELECT * FROM visits WHERE PatientPKHash = ? AND SiteCode = ?"
-        
-        # Execute the query with parameters
-        cursor.execute(query, (patientPK, sitecode))
-
-        # Fetch all rows from the executed query
-        rows = cursor.fetchall()
-
-        # Create a DataFrame from the fetched rows
-        visits = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
-
-        # Define the SQL query to fetch data from the 'dem' table
-        query = "SELECT * FROM dem WHERE PatientPKHash = ? AND MFLCode = ?"
-        
-        # Execute the query with parameters
-        cursor.execute(query, (patientPK, sitecode))
-
-        # Fetch all rows from the executed query
-        rows = cursor.fetchall()
-
-        # Create a DataFrame from the fetched rows
-        dem = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
-
+    # if aws if False, read in pharmacy, lab, visits and dem data from SQLite
     else:
-        # Create a cursor object to interact with the database
-        cursor = connection.cursor()
+        # If prediction is True, then read in data just for the patient and sitecode
+        if prediction:
+            # Create a connection to the SQLite database (or create it if it doesn't exist)
+            connection = sqlite3.connect('./data/iit_test.sqlite')
 
-        # Define the SQL query to fetch data from the 'lab' table
-        query = "SELECT * FROM lab"
-        
-        # Execute the query with parameters
-        cursor.execute(query)
+            # Create a cursor object to interact with the database
+            cursor = connection.cursor()
 
-        # Fetch all rows from the executed query
-        rows = cursor.fetchall()
+            # Define the SQL query to fetch data from the 'lab' table
+            query = "SELECT * FROM lab WHERE PatientPKHash = ? AND SiteCode = ?"
+            
+            # Execute the query with parameters
+            cursor.execute(query, (patientPK, sitecode))
 
-        # Create a DataFrame from the fetched rows
-        lab = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
+            # Fetch all rows from the executed query
+            rows = cursor.fetchall()
 
-        # Define the SQL query to fetch data from the 'pharmacy' table
-        query = "SELECT * FROM pharmacy"
-        
-        # Execute the query with parameters
-        cursor.execute(query)
+            # Create a DataFrame from the fetched rows
+            lab = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
+            # Define the SQL query to fetch data from the 'pharmacy' table
+            query = "SELECT * FROM pharmacy WHERE PatientPKHash = ? AND SiteCode = ?"
+            # Execute the query with parameters
+            cursor.execute(query, (patientPK, sitecode))
+            # Fetch all rows from the executed query
+            rows = cursor.fetchall()
+            # Create a DataFrame from the fetched rows
+            pharmacy = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
 
-        # Fetch all rows from the executed query
-        rows = cursor.fetchall()
+            # Define the SQL query to fetch data from the 'visits' table
+            query = "SELECT * FROM visits WHERE PatientPKHash = ? AND SiteCode = ?"
+            # Execute the query with parameters
+            cursor.execute(query, (patientPK, sitecode))
+            # Fetch all rows from the executed query
+            rows = cursor.fetchall()
+            # Create a DataFrame from the fetched rows
+            visits = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
 
-        # Create a DataFrame from the fetched rows
-        pharmacy = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
+            # Define the SQL query to fetch data from the 'dem' table
+            # Execute the query with parameters
+            query = "SELECT * FROM dem WHERE PatientPKHash = ? AND MFLCode = ?"
+            cursor.execute(query, (patientPK, sitecode))
+            # Fetch all rows from the executed query
+            rows = cursor.fetchall()
+            # Create a DataFrame from the fetched rows
+            dem = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
 
-        # Define the SQL query to fetch data from the 'visits' table
-        query = "SELECT * FROM visits"
-        
-        # Execute the query with parameters
-        cursor.execute(query)
+        # If prediction is False, then read in all data from SQLite
+        else:       
+            # Create a connection to the SQLite database (or create it if it doesn't exist)
+            connection = sqlite3.connect('./data/iit_test.sqlite')
 
-        # Fetch all rows from the executed query
-        rows = cursor.fetchall()
+            # Create a cursor object to interact with the database
+            cursor = connection.cursor()
 
-        # Create a DataFrame from the fetched rows
-        visits = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
+            # Define the SQL query to fetch data from the 'lab' table
+            query = "SELECT * FROM lab"
+            
+            # Execute the query with parameters
+            cursor.execute(query)
 
-        # Define the SQL query to fetch data from the 'dem' table
-        query = "SELECT * FROM dem"
-        
-        # Execute the query with parameters
-        cursor.execute(query)
+            # Fetch all rows from the executed query
+            rows = cursor.fetchall()
 
-        # Fetch all rows from the executed query
-        rows = cursor.fetchall()
+            # Create a DataFrame from the fetched rows
+            lab = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
 
-        # Create a DataFrame from the fetched rows
-        dem = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
+            # Define the SQL query to fetch data from the 'pharmacy' table
+            query = "SELECT * FROM pharmacy"
+            
+            # Execute the query with parameters
+            cursor.execute(query)
+
+            # Fetch all rows from the executed query
+            rows = cursor.fetchall()
+
+            # Create a DataFrame from the fetched rows
+            pharmacy = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
+
+            # Define the SQL query to fetch data from the 'visits' table
+            query = "SELECT * FROM visits"
+            
+            # Execute the query with parameters
+            cursor.execute(query)
+
+            # Fetch all rows from the executed query
+            rows = cursor.fetchall()
+
+            # Create a DataFrame from the fetched rows
+            visits = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
+
+            # Define the SQL query to fetch data from the 'dem' table
+            query = "SELECT * FROM dem"
+            
+            # Execute the query with parameters
+            cursor.execute(query)
+
+            # Fetch all rows from the executed query
+            rows = cursor.fetchall()
+
+            # Create a DataFrame from the fetched rows
+            dem = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
 
     # Pull locational data
-
-    # Pull MFL data
-    query = "SELECT * FROM mfl"
-    
-    # Execute the query with parameters
-    cursor.execute(query)
-
-    # Fetch all rows from the executed query
-    rows = cursor.fetchall()
-
-    # Create a DataFrame from the fetched rows
-    mfl = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
-    
-    # Pull MFL data
-    query = "SELECT * FROM dhs"
-    
-    # Execute the query with parameters
-    cursor.execute(query)
-
-    # Fetch all rows from the executed query
-    rows = cursor.fetchall()
-
-    # Create a DataFrame from the fetched rows
-    dhs = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
-
-    # Pull MFL data
-    query = "SELECT * FROM txcurr"
-    
-    # Execute the query with parameters
-    cursor.execute(query)
-
-    # Fetch all rows from the executed query
-    rows = cursor.fetchall()
-
-    # Create a DataFrame from the fetched rows
-    txcurr = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
-
-    # Close the cursor and connection
+    # Create a connection to the SQLite database (or create it if it doesn't exist)
+    connection = sqlite3.connect('./data/iit_test.sqlite')
+    cursor = connection.cursor()
+    for table in ['mfl', 'dhs', 'txcurr']:
+        query = f"SELECT * FROM {table}"
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        df = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
+        if table == 'mfl':
+            mfl = df
+        elif table == 'dhs':
+            dhs = df
+        elif table == 'txcurr':
+            txcurr = df
     cursor.close()
     connection.close()
 
+    # Return the dataframes
     return lab, pharmacy, visits, dem, mfl, dhs, txcurr

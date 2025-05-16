@@ -6,3 +6,4 @@ polars
 pyarrow
 boto3
 pyreadr
+pandarallel
