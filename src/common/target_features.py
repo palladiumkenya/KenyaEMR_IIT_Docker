@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import polars as pl
 
 def prep_target_visit_features(targets_df, visits_df):
