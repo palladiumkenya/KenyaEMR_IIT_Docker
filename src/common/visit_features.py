@@ -194,7 +194,7 @@ def regimen_switch_group(group):
     regimens = group['currentregimen']
     switch_counts = []
 
-    for i, this_date in enumerate(visitdates):
+    for _, this_date in enumerate(visitdates):
         mask = (visitdates <= this_date) & (visitdates >= this_date - pd.Timedelta(days=365))
         prev_regimens = regimens[mask].dropna().unique()
         switch_counts.append(len(prev_regimens))

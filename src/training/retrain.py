@@ -18,33 +18,33 @@ s3 = boto3.client('s3')
 import time
 start_time = time.time()
 
-lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data.get_data(aws = False, prediction = False)
+lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data.get_data(aws = True, prediction = False)
 
 # Run cleaning and feature preparation functions
-lab = clean_data.clean_lab(lab, start_date = "2021-01-01")
-buffer = io.BytesIO()
-lab.to_parquet(buffer, index=False)
-s3.put_object(Bucket='kehmisjan2025', Key='lab0515.parquet', Body=buffer.getvalue())
-print("lab cleaned")
-print(time.time() - start_time)
+# lab = clean_data.clean_lab(lab, start_date = "2021-01-01")
+# buffer = io.BytesIO()
+# lab.to_parquet(buffer, index=False)
+# s3.put_object(Bucket='kehmisjan2025', Key='lab0515.parquet', Body=buffer.getvalue())
+# print("lab cleaned")
+# print(time.time() - start_time)
 # Download the file into a BytesIO buffer
-# buffer = io.BytesIO()
-# bucket = 'kehmisjan2025'
-# s3.download_fileobj(bucket, 'lab0515.parquet', buffer)
-# buffer.seek(0)  # Move to the start of the buffer
-# lab = pd.read_parquet(buffer)
-
-pharmacy = clean_data.clean_pharmacy(pharmacy, start_date = "2021-01-01", end_date = "2025-01-15")
 buffer = io.BytesIO()
-pharmacy.to_parquet(buffer, index=False)
-s3.put_object(Bucket='kehmisjan2025', Key='pharmacy0515.parquet', Body=buffer.getvalue())
-print("pharmacy cleaned")
-print(time.time() - start_time)
+bucket = 'kehmisjan2025'
+s3.download_fileobj(bucket, 'lab0515.parquet', buffer)
+buffer.seek(0)  # Move to the start of the buffer
+lab = pd.read_parquet(buffer)
+
+# pharmacy = clean_data.clean_pharmacy(pharmacy, start_date = "2021-01-01", end_date = "2025-01-15")
 # buffer = io.BytesIO()
-# bucket_name = 'kehmisjan2025'
-# s3.download_fileobj(bucket, 'pharmacy0515.parquet', buffer)
-# buffer.seek(0)  # Move to the start of the buffer
-# pharmacy = pd.read_parquet(buffer)
+# pharmacy.to_parquet(buffer, index=False)
+# s3.put_object(Bucket='kehmisjan2025', Key='pharmacy0515.parquet', Body=buffer.getvalue())
+# print("pharmacy cleaned")
+# print(time.time() - start_time)
+# buffer = io.BytesIO()
+bucket_name = 'kehmisjan2025'
+s3.download_fileobj(bucket, 'pharmacy0515.parquet', buffer)
+buffer.seek(0)  # Move to the start of the buffer
+pharmacy = pd.read_parquet(buffer)
 
 visits = clean_data.clean_visits(visits, dem, start_date = "2021-01-01", end_date = "2025-01-15")
 buffer = io.BytesIO()
