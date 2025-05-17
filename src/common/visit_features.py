@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
-from datetime import datetime
 from . import helpers
-
+from pandarallel import pandarallel
+pandarallel.initialize(progress_bar=True)
 
 def prep_visit_features(df):
 
@@ -188,36 +188,28 @@ def clean_bmi(df):
         
     return df
 
+def regimen_switch_group(group):
+    group = group.sort_values('visitdate')
+    visitdates = group['visitdate']
+    regimens = group['currentregimen']
+    switch_counts = []
+
+    for _, this_date in enumerate(visitdates):
+        mask = (visitdates <= this_date) & (visitdates >= this_date - pd.Timedelta(days=365))
+        prev_regimens = regimens[mask].dropna().unique()
+        switch_counts.append(len(prev_regimens))
+
+    group['regimen_switch'] = [None if x == 0 else (0 if x == 1 else 1) for x in switch_counts]
+    return group
+
 def regimen_switch(df):
     df = df.copy()
     df['visitdate'] = pd.to_datetime(df['visitdate'], errors='coerce')
     df = df.sort_values(by=['key', 'visitdate'])
-
-    # Treat empty or whitespace-only currentregimen as missing
     df['currentregimen'] = df['currentregimen'].replace(r'^\s*$', None, regex=True)
 
-    # Initialize empty series to collect results
-    result_series = pd.Series(index=df.index, dtype="Int64")
-
-    # Group by key
-    for key, group in df.groupby('key'):
-        group = group.sort_values('visitdate')
-        visitdates = group['visitdate']
-        regimens = group['currentregimen']
-        switch_counts = []
-
-        for i, this_date in enumerate(visitdates):
-            mask = (visitdates <= this_date) & (visitdates >= this_date - pd.Timedelta(days=365))
-            prev_regimens = regimens[mask].dropna().unique()
-            switch_counts.append(len(prev_regimens))
-
-        # Assign to the correct index positions in the original DataFrame
-        result_series.loc[group.index] = switch_counts
-
-    # Apply transformation rules
-    df['regimen_switch'] = result_series.apply(
-        lambda x: None if x == 0 else (0 if x == 1 else 1)
-    )
+    # Parallel groupby-apply
+    df = df.groupby('key', group_keys=False).parallel_apply(regimen_switch_group)
     return df
 
 
