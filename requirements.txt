@@ -7,3 +7,7 @@ pyarrow
 boto3
 pyreadr
 pandarallel
+scikit-learn
+xgboost
+tqdm
+matplotlib
