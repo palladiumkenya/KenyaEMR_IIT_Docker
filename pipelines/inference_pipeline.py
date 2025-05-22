@@ -35,4 +35,13 @@ def run_inference_pipeline(aws = False, prediction = True, ppk = str, sc = str, 
     targets = target_features.prep_target_lab_features(targets, lab)
     targets = locational_features_inf.get_locational_features(targets)
     pred = generate_inference.gen_inference(targets)
+    print(pred)
     return pred
+
+if __name__ == "__main__":
+    run_inference_pipeline(aws = False,
+                           prediction = True, 
+                           ppk = "7E14A8034F39478149EE6A4CA37A247C631D17907C746BE0336D3D7CEC68F66F",
+                           sc = "13074",
+                            start_date = "2021-01-01",
+                            end_date = "2025-01-15")

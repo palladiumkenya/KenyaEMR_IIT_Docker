@@ -7,7 +7,7 @@ import io
 import os
 import pandas as pd
 import pickle
-import shutil
+from src.common.feature_dtypes import expected_dtypes
 
 def gen_inference(df):
 
@@ -17,18 +17,20 @@ def gen_inference(df):
     df = df.sort_values(by='nad', ascending=False)
 
     df = df.drop(columns=[
-        'key', 'visitdate', 'nad_imputation_flag', 'sitecode', 'pregnant_missing',
-        'breastfeeding_missing', 'startartdate', 'month', 'dayofweek', 'timeatfacility',
-        'code', 'county'])
+        'key', 'visitdate', 'nad_imputation_flag', 'sitecode', 'pregnant_missing', 'nad',
+        'breastfeeding_missing', 'startartdate', 'month', 'dayofweek', 'timeatfacility'])
 
     # filter to emr in kenyamer and ecare   
     df = df[df['emr'].isin(['kenyaemr', 'ecare'])]
     # Emr: KenyaEMR -> 1, else 0
     df['emr'] = (df['emr'] == 'kenyaemr').astype('Int64') 
 
-    # convert whostage and adherence to integers
-    df['whostage'] = df['whostage'].astype('float').astype('Int64')
-    df['adherence'] = df['adherence'].astype('Int64')
+    df.columns = df.columns.str.lower().str.replace(' ', '_')
+
+    # ensure columns are right dtypes
+    for col, dtype in expected_dtypes.items():
+        if col in df.columns:
+            df[col] = df[col].astype(dtype)
 
     # load encoder which is called ohe_latest.pkl
     # from the models directory
@@ -45,7 +47,6 @@ def gen_inference(df):
     # If the columns are different, you may need to adjust this part
     # to match the training columns
     categorical_columns = df.select_dtypes(include=['object']).columns.tolist()
-    ohe.fit(df[categorical_columns])
 
     # One-hot encode the categorical columns
     encoded_features = ohe.transform(df[categorical_columns]).toarray()
@@ -57,6 +58,11 @@ def gen_inference(df):
     # Concatenate the encoded features with the original DataFrame
     final_df = pd.concat([df.drop(columns=categorical_columns), encoded_df], axis=1)
 
+    # make sure the columns are in the right order
+    with open("models/feature_order.pkl", "rb") as f:
+        feature_order = pickle.load(f)
+    final_df = final_df[feature_order]
+
     # convert to xgb.Dmatrix
     xgb_df = xgb.DMatrix(
         data=final_df.drop(columns=["iit"]),
@@ -64,12 +70,13 @@ def gen_inference(df):
     )
 
     # load model
-    model = "models/xgb_latest.pkl"
+    model = "models/mod_latest.json"
     # Check if the model file exists
     if not os.path.exists(model):
         raise FileNotFoundError(f"Model file {model} not found. Please train the model first.")
     bst = xgb.Booster()
     bst.load_model(model)
+
     # make prediction
     preds = bst.predict(xgb_df)
 

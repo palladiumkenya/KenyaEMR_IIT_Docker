@@ -161,7 +161,7 @@ def prep_locational_features(targets_df, mfl, dhs, txcurr):
                                            'men_sexnotwithpartner', 'men_sexpartners', 'men_nevertested',
                                            'men_testedrecent', 'men_sti', 'women_highrisksex', 'women_highrisksex_multi',
                                            'women_sexnotwithpartner', 'women_sexpartners', 'women_nevertested',
-                                           'women_testedrecent', 'women_sti']]
+                                           'women_testedrecent', 'women_sti', 'women_heardaids']]
     
     # save loc_for_inference to s3
     timestamp = datetime.now().strftime("%Y%m%d")

@@ -7,7 +7,7 @@ import io
 import pandas as pd
 import pickle
 import shutil
-
+from src.common.feature_dtypes import expected_dtypes
 
 def refresh_model(pipeline = False, targets_df = None, targets_aws = None, refresh_date = str):
 
@@ -51,9 +51,13 @@ def refresh_model(pipeline = False, targets_df = None, targets_aws = None, refre
     # Emr: KenyaEMR -> 1, else 0
     df['emr'] = (df['emr'] == 'kenyaemr').astype('Int64') 
 
-    # convert whostage and adherence to integers
-    df['whostage'] = df['whostage'].astype('float').astype('Int64')
-    df['adherence'] = df['adherence'].astype('Int64')
+    # make sure all column names are lowercase and no whitespace
+    df.columns = df.columns.str.lower().str.replace(' ', '_')
+
+    # ensure columns are right dtypes
+    for col, dtype in expected_dtypes.items():
+        if col in df.columns:
+            df[col] = df[col].astype(dtype)
 
     categorical_columns = df.select_dtypes(include=['object']).columns.tolist()
 
@@ -84,6 +88,10 @@ def refresh_model(pipeline = False, targets_df = None, targets_aws = None, refre
         
         # Concatenate the encoded features with the original DataFrame
         final_df = pd.concat([df.drop(columns=categorical_columns), encoded_df], axis=1)
+
+        feature_order = list(final_df.columns)
+        with open("models/feature_order.pkl", "wb") as f:
+            pickle.dump(feature_order, f)
 
         # convert to xgb.Dmatrix
         xgb_df = xgb.DMatrix(
@@ -119,12 +127,14 @@ def refresh_model(pipeline = False, targets_df = None, targets_aws = None, refre
         verbose_eval=False
     )
 
-    # Save the refreshed model with time stamp
-    with open(f"models/mod_{timestamp}.pkl", "wb") as f:
-        pickle.dump(gb_model, f)
-    # Save the refreshed model as latest to be used in inference
-    shutil.copyfile(f"models/mod_{timestamp}.pkl", "models/mod_latest.pkl")
+    # After training with xgb.train(...)
+    gb_model.save_model(f"models/mod_{timestamp}.json") 
+    shutil.copyfile(f"models/mod_{timestamp}.json", "models/mod_latest.json")
 
-
+    
+if __name__ == "__main__":
+    refresh_model(pipeline = False,
+                  targets_aws = "targets0521.parquet",
+                  refresh_date = "2024-09-30")
 
 
