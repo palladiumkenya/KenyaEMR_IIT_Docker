@@ -1,8 +1,6 @@
 from datetime import datetime
 import pandas as pd
 import numpy as np
-from pandarallel import pandarallel
-pandarallel.initialize(progress_bar=True)
 
 def parse_long_date(date_col):
     """

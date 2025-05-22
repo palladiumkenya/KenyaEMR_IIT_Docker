@@ -5,7 +5,8 @@ from src.common import visit_features
 from src.common import dem_features
 from src.common import create_target
 from src.common import target_features
-from src.common import locational_features
+import locational_features
+import refresh_model
 
 # general imports
 import boto3
@@ -34,32 +35,27 @@ s3.put_object(Bucket='kehmisjan2025', Key='pharmacy0515.parquet', Body=buffer.ge
 print("pharmacy cleaned")
 print(time.time() - start_time)
 
-# print("cleaning visits")
-# visits = clean_data.clean_visits(visits, dem, start_date = "2021-01-01", end_date = "2025-01-15")
-# buffer = io.BytesIO()
-# visits.to_parquet(buffer, index=False)
-# s3.put_object(Bucket='kehmisjan2025', Key='visits0515.parquet', Body=buffer.getvalue())
-# print("visits cleaned")
-# print(time.time() - start_time)
-
-# visits = visit_features.prep_visit_features(visits)
-# buffer = io.BytesIO()
-# visits.to_parquet(buffer, index=False)
-# s3.put_object(Bucket='kehmisjan2025', Key='visits0515.parquet', Body=buffer.getvalue())
-# print("visits features prepared")
-# print(time.time() - start_time)
-
-# visits = dem_features.prep_demographics(visits)
-# buffer = io.BytesIO()
-# visits.to_parquet(buffer, index=False)
-# s3.put_object(Bucket='kehmisjan2025', Key='visits0515.parquet', Body=buffer.getvalue())
-# print("demographics features prepared")
-# print(time.time() - start_time)
-# read in visits0515.parquet from aws s3 bucket
+print("cleaning visits")
+visits = clean_data.clean_visits(visits, dem, start_date = "2021-01-01", end_date = "2025-01-15")
 buffer = io.BytesIO()
-s3.download_fileobj('kehmisjan2025', 'visits0515.parquet', buffer)
-buffer.seek(0)
-visits = pd.read_parquet(buffer)
+visits.to_parquet(buffer, index=False)
+s3.put_object(Bucket='kehmisjan2025', Key='visits0515.parquet', Body=buffer.getvalue())
+print("visits cleaned")
+print(time.time() - start_time)
+
+visits = visit_features.prep_visit_features(visits)
+buffer = io.BytesIO()
+visits.to_parquet(buffer, index=False)
+s3.put_object(Bucket='kehmisjan2025', Key='visits0515.parquet', Body=buffer.getvalue())
+print("visits features prepared")
+print(time.time() - start_time)
+
+visits = dem_features.prep_demographics(visits)
+buffer = io.BytesIO()
+visits.to_parquet(buffer, index=False)
+s3.put_object(Bucket='kehmisjan2025', Key='visits0515.parquet', Body=buffer.getvalue())
+print("demographics features prepared")
+print(time.time() - start_time)
 
 targets = create_target.create_target(visits, pharmacy, dem)
 buffer = io.BytesIO()
@@ -95,6 +91,10 @@ targets.to_parquet(buffer, index=False)
 s3.put_object(Bucket='kehmisjan2025', Key='targets0515.parquet', Body=buffer.getvalue())
 print("locational features developed")
 print(time.time() - start_time)
+
+# if running in pipeline, then targets_df = targets and pipeline = True.
+# if running from AWS, then targets_aws is the filename and pipeline = False.
+refresh_model.refresh_model(pipeline = False, targets_df = targets, refresh_date = "2024-09-30")
 
 # end time
 end_time = time.time()

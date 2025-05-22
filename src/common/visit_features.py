@@ -1,8 +1,6 @@
 import pandas as pd
 import numpy as np
 from . import helpers
-from pandarallel import pandarallel
-pandarallel.initialize(progress_bar=True)
 
 def prep_visit_features(df):
 
