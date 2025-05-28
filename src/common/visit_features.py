@@ -1,8 +1,6 @@
 import pandas as pd
 import numpy as np
 from . import helpers
-from pandarallel import pandarallel
-pandarallel.initialize(progress_bar=True)
 
 def prep_visit_features(df):
 
@@ -209,7 +207,7 @@ def regimen_switch(df):
     df['currentregimen'] = df['currentregimen'].replace(r'^\s*$', None, regex=True)
 
     # Parallel groupby-apply
-    df = df.groupby('key', group_keys=False).parallel_apply(regimen_switch_group)
+    df = df.groupby('key', group_keys=False).apply(regimen_switch_group)
     return df
 
 

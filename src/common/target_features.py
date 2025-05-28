@@ -152,7 +152,7 @@ def prep_target_pharmacy_features(targets_df, pharmacy_df):
     pharmacy_df['visitdate'] = pd.to_datetime(pharmacy_df['visitdate'], errors='coerce')
     pharmacy_df = pharmacy_df[['key', 'visitdate', 'optimizedhivregimen']]
 
-    pharmacy_df['key'] = pharmacy_df['key'].astype(str)
+    pharmacy_df.loc[:, 'key'] = pharmacy_df.loc[:,'key'].astype(str)
 
     # do rolling join with targets_df
     targets_df = targets_df.sort_values(['key', 'visitdate'], ascending=[True, True]).reset_index(drop=True)
@@ -187,7 +187,7 @@ def prep_target_lab_features(targets_df, lab_df):
     # first, get vl data
     vl_df = lab_df[lab_df['testname'] == 'VL']
     # rename testrestultcat to vl
-    vl_df['vl'] = vl_df['testresultcat']
+    vl_df.loc[:, 'vl'] = vl_df.loc[:, 'testresultcat']
     vl_df = vl_df[['key', 'orderedbydate', 'vl']]
     
     targets_df['visitdate'] = pd.to_datetime(targets_df['visitdate'])
@@ -239,7 +239,7 @@ def prep_target_lab_features(targets_df, lab_df):
     # now, let's repeat the process for cd4 data
     cd4_df = lab_df[lab_df['testname'] == 'CD4']
     # rename testrestultcat to cd4
-    cd4_df['cd4'] = cd4_df['testresultcat']
+    cd4_df.loc[:, 'cd4'] = cd4_df.loc[:, 'testresultcat']
     cd4_df = cd4_df[['key', 'orderedbydate', 'cd4']]
     cd4_df['orderedbydate'] = pd.to_datetime(cd4_df['orderedbydate'], errors='coerce')
     # do rolling join with targets_df

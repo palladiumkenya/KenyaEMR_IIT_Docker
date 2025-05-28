@@ -6,4 +6,8 @@ polars
 pyarrow
 boto3
 pyreadr
-pandarallel
+scikit-learn
+xgboost
+tqdm
+matplotlib
+s3fs

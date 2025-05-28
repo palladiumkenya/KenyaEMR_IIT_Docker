@@ -1,8 +1,6 @@
 from datetime import datetime
 import pandas as pd
 import numpy as np
-from pandarallel import pandarallel
-pandarallel.initialize(progress_bar=True)
 
 def parse_long_date(date_col):
     """
@@ -131,7 +129,7 @@ def impute_date(df, key_var, contact_var, return_var):
         )
         return group
 
-    df = df.groupby(key_var, group_keys=False).parallel_apply(impute_group).reset_index(drop =True)
+    df = df.groupby(key_var, group_keys=False).apply(impute_group).reset_index(drop =True)
 
     # If any nad_imputed is still missing, impute it as contact_var plus 30 days
     df['nad_imputed'] = df.apply(
