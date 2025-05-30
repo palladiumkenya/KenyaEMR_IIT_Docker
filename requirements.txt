@@ -11,3 +11,5 @@ xgboost
 tqdm
 matplotlib
 s3fs
+fastapi
+uvicorn
