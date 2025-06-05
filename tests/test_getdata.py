@@ -5,6 +5,7 @@ from src.common.get_data import get_inference_data
 
 # test cases for get_training_data function
 
+
 def test_get_data_no_prediction():
     # Call the function with prediction=False
     lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_training_data(aws=False)

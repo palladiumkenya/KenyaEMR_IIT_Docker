@@ -169,16 +169,18 @@ def test_clean_education_level():
 
 def test_prep_demographics_basic():
     # Sample input
-    df = pd.DataFrame({
-        "key": ["A", "A", "B"],
-        "visitdate": ["2022-01-01", "2022-02-01", "2022-01-15"],
-        "startartdate": ["2021-01-01", "2021-01-01", "2021-01-01"],
-        "nad_imputed": ["2022-01-10", "2022-02-10", "2022-01-20"],
-        "maritalstatus": ["Single", "Married", "Divorced"],
-        "age": [20, 14, 35],
-        "occupation": ["Farmer", "  ", "null"],
-        "educationlevel": ["Primary", "College", "Unknown"],
-    })
+    df = pd.DataFrame(
+        {
+            "key": ["A", "A", "B"],
+            "visitdate": ["2022-01-01", "2022-02-01", "2022-01-15"],
+            "startartdate": ["2021-01-01", "2021-01-01", "2021-01-01"],
+            "nad_imputed": ["2022-01-10", "2022-02-10", "2022-01-20"],
+            "maritalstatus": ["Single", "Married", "Divorced"],
+            "age": [20, 14, 35],
+            "occupation": ["Farmer", "  ", "null"],
+            "educationlevel": ["Primary", "College", "Unknown"],
+        }
+    )
 
     out = dem_features.prep_demographics(df.copy())
 

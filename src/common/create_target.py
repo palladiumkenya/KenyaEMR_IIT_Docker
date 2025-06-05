@@ -120,7 +120,7 @@ def create_target(visits_df, pharmacy_df, dem_df):
     # first, split the dataframe into two dataframes - one for the most recent visit and one for all other visits
     most_recent_visit = target_df[target_df["num_visit"] == 0]
     other_visits = target_df[target_df["num_visit"] > 0]
- 
+
     # get the max visitdate for each sitecode
     max_visitdate = target_df.groupby("sitecode")["visitdate"].max().reset_index()
 
