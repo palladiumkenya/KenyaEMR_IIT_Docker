@@ -1,5 +1,6 @@
 import sqlite3
 import pytest
+import os
 from src.common.get_data import get_training_data
 from src.common.get_data import get_inference_data
 
