@@ -1,18 +1,22 @@
 import sqlite3
-import pandas as pd
 import pytest
-from src.common.get_data import get_data
+from src.common.get_data import get_training_data
+from src.common.get_data import get_inference_data
 
+# test cases for get_training_data function
 
 def test_get_data_no_prediction():
     # Call the function with prediction=False
-    lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data(prediction=False)
+    lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_training_data(aws=False)
 
     # Assert that the returned DataFrames are not empty
     assert not lab.empty, "Lab DataFrame is empty"
     assert not pharmacy.empty, "Pharmacy DataFrame is empty"
     assert not visits.empty, "Visits DataFrame is empty"
     assert not dem.empty, "Demographics DataFrame is empty"
+    assert not mfl.empty, "MFL DataFrame is empty"
+    assert not dhs.empty, "DHS DataFrame is empty"
+    assert not txcurr.empty, "Txcurr DataFrame is empty"
 
 
 def test_get_data_with_prediction_valid():
@@ -21,8 +25,8 @@ def test_get_data_with_prediction_valid():
     sitecode = "13074"
 
     # Call the function with prediction=True
-    lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data(
-        prediction=True, patientPK=patientPK, sitecode=sitecode
+    lab, pharmacy, visits, dem = get_inference_data(
+        patientPK=patientPK, sitecode=sitecode
     )
 
     # Assert that the returned DataFrames are not empty
@@ -44,8 +48,8 @@ def test_get_data_with_prediction_invalid():
     sitecode = "invalid_site_code"
 
     # Call the function with prediction=True
-    lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data(
-        prediction=True, patientPK=patientPK, sitecode=sitecode
+    lab, pharmacy, visits, dem = get_inference_data(
+        patientPK=patientPK, sitecode=sitecode
     )
 
     # Assert that the returned DataFrames are empty
@@ -69,4 +73,4 @@ def test_get_data_database_error(monkeypatch):
     )
 
     with pytest.raises(sqlite3.OperationalError, match="Database not found"):
-        get_data(prediction=False)
+        get_training_data(aws=False)

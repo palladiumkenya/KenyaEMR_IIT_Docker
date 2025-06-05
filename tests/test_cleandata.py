@@ -148,8 +148,24 @@ def test_clean_visits_date_parsing():
         }
     )
 
+    # add dem_df to match the function signature with the following columns
+    #  "key","sex", "maritalstatus", "educationlevel", "occupation",
+    # "artoutcomedescription", "startartdate", "dob"
+    dem_df = pd.DataFrame(
+        {
+            "key": ["hash1" + "123"],
+            "sex": ["M"],
+            "maritalstatus": ["Single"],
+            "educationlevel": ["High School"],
+            "occupation": ["Engineer"],
+            "artoutcomedescription": ["On ART"],
+            "startartdate": ["2020-01-01"],
+            "dob": ["1990-01-01"],
+        }
+    )
+
     # Clean the data
-    cleaned_data = clean_visits(data, start_date="2020-01-01", end_date="2025-01-01")
+    cleaned_data = clean_visits(data, dem_df=dem_df, start_date="2020-01-01", end_date="2025-01-01")
 
     # Assert dates are parsed correctly
     assert (
@@ -175,8 +191,21 @@ def test_clean_visits_date_range_filter():
         }
     )
 
+    dem_df = pd.DataFrame(
+        {
+            "key": ["hash1" + "123"],
+            "sex": ["M"],
+            "maritalstatus": ["Single"],
+            "educationlevel": ["High School"],
+            "occupation": ["Engineer"],
+            "artoutcomedescription": ["On ART"],
+            "startartdate": ["2020-01-01"],
+            "dob": ["1990-01-01"],
+        }
+    )
+
     # Clean the data
-    cleaned_data = clean_visits(data, start_date="2020-01-01", end_date="2025-01-01")
+    cleaned_data = clean_visits(data, dem_df=dem_df, start_date="2020-01-01", end_date="2025-01-01")
     print(cleaned_data)
     # Assert only rows within the date range are retained
     assert len(cleaned_data) == 1, "Rows outside the date range were not filtered"

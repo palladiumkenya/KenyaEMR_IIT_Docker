@@ -165,3 +165,49 @@ def test_clean_education_level():
             assert pd.isnull(val)
         else:
             assert val == exp
+
+
+def test_prep_demographics_basic():
+    # Sample input
+    df = pd.DataFrame({
+        "key": ["A", "A", "B"],
+        "visitdate": ["2022-01-01", "2022-02-01", "2022-01-15"],
+        "startartdate": ["2021-01-01", "2021-01-01", "2021-01-01"],
+        "nad_imputed": ["2022-01-10", "2022-02-10", "2022-01-20"],
+        "maritalstatus": ["Single", "Married", "Divorced"],
+        "age": [20, 14, 35],
+        "occupation": ["Farmer", "  ", "null"],
+        "educationlevel": ["Primary", "College", "Unknown"],
+    })
+
+    out = dem_features.prep_demographics(df.copy())
+
+    # Check types
+    assert pd.api.types.is_datetime64_any_dtype(out["visitdate"])
+    assert pd.api.types.is_datetime64_any_dtype(out["startartdate"])
+    assert pd.api.types.is_datetime64_any_dtype(out["nad_imputed"])
+
+    # Check new columns
+    assert "month" in out.columns
+    assert "dayofweek" in out.columns
+    assert "daystonextappointment" in out.columns
+    assert "timeonart" in out.columns
+    assert "timeatfacility" in out.columns
+    assert "firstvisit" in out.columns
+    assert "maritalstatus" in out.columns
+    assert "occupation" in out.columns
+    assert "educationlevel" in out.columns
+
+    # Check transformations
+    # Marital status: age < 15 should be "minor"
+    assert out.loc[1, "maritalstatus"] == "minor"
+    # Marital status: "single" should be "single"
+    assert out.loc[0, "maritalstatus"] == "single"
+    # Occupation: whitespace or "null" should be None
+    assert out.loc[1, "occupation"] is None
+    assert out.loc[2, "occupation"] is None
+    # Education: unknown should be None
+    assert out.loc[2, "educationlevel"] is None
+
+    # Check timeonart is non-negative
+    assert (out["timeonart"] >= 0).all()
