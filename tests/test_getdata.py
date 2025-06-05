@@ -5,7 +5,7 @@ from src.common.get_data import get_inference_data
 
 # test cases for get_training_data function
 
-
+@pytest.mark.skipif(os.getenv("CI") == "true", reason="Database not available in CI")
 def test_get_data_no_prediction():
     # Call the function with prediction=False
     lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_training_data(aws=False)
@@ -19,7 +19,7 @@ def test_get_data_no_prediction():
     assert not dhs.empty, "DHS DataFrame is empty"
     assert not txcurr.empty, "Txcurr DataFrame is empty"
 
-
+@pytest.mark.skipif(os.getenv("CI") == "true", reason="Database not available in CI")
 def test_get_data_with_prediction_valid():
     # Mock valid patientPK and sitecode
     patientPK = "7E14A8034F39478149EE6A4CA37A247C631D17907C746BE0336D3D7CEC68F66F"
@@ -42,7 +42,7 @@ def test_get_data_with_prediction_valid():
         not dem.empty
     ), "Demographics DataFrame is empty for valid patientPK and sitecode"
 
-
+@pytest.mark.skipif(os.getenv("CI") == "true", reason="Database not available in CI")
 def test_get_data_with_prediction_invalid():
     # Mock invalid patientPK and sitecode
     patientPK = "invalid_patient_pk"
