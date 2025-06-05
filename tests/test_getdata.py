@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 from src.common.get_data import get_data
 
+
 def test_get_data_no_prediction():
     # Call the function with prediction=False
     lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data(prediction=False)
@@ -20,13 +21,22 @@ def test_get_data_with_prediction_valid():
     sitecode = "13074"
 
     # Call the function with prediction=True
-    lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data(prediction=True, patientPK=patientPK, sitecode=sitecode)
+    lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data(
+        prediction=True, patientPK=patientPK, sitecode=sitecode
+    )
 
     # Assert that the returned DataFrames are not empty
     assert not lab.empty, "Lab DataFrame is empty for valid patientPK and sitecode"
-    assert not pharmacy.empty, "Pharmacy DataFrame is empty for valid patientPK and sitecode"
-    assert not visits.empty, "Visits DataFrame is empty for valid patientPK and sitecode"
-    assert not dem.empty, "Demographics DataFrame is empty for valid patientPK and sitecode"
+    assert (
+        not pharmacy.empty
+    ), "Pharmacy DataFrame is empty for valid patientPK and sitecode"
+    assert (
+        not visits.empty
+    ), "Visits DataFrame is empty for valid patientPK and sitecode"
+    assert (
+        not dem.empty
+    ), "Demographics DataFrame is empty for valid patientPK and sitecode"
+
 
 def test_get_data_with_prediction_invalid():
     # Mock invalid patientPK and sitecode
@@ -34,17 +44,29 @@ def test_get_data_with_prediction_invalid():
     sitecode = "invalid_site_code"
 
     # Call the function with prediction=True
-    lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data(prediction=True, patientPK=patientPK, sitecode=sitecode)
+    lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data(
+        prediction=True, patientPK=patientPK, sitecode=sitecode
+    )
 
     # Assert that the returned DataFrames are empty
     assert lab.empty, "Lab DataFrame is not empty for invalid patientPK and sitecode"
-    assert pharmacy.empty, "Pharmacy DataFrame is not empty for invalid patientPK and sitecode"
-    assert visits.empty, "Visits DataFrame is not empty for invalid patientPK and sitecode"
-    assert dem.empty, "Demographics DataFrame is not empty for invalid patientPK and sitecode"
+    assert (
+        pharmacy.empty
+    ), "Pharmacy DataFrame is not empty for invalid patientPK and sitecode"
+    assert (
+        visits.empty
+    ), "Visits DataFrame is not empty for invalid patientPK and sitecode"
+    assert (
+        dem.empty
+    ), "Demographics DataFrame is not empty for invalid patientPK and sitecode"
+
 
 def test_get_data_database_error(monkeypatch):
     # Use monkeypatch to simulate a missing database file
-    monkeypatch.setattr("sqlite3.connect", lambda _: (_ for _ in ()).throw(sqlite3.OperationalError("Database not found")))
+    monkeypatch.setattr(
+        "sqlite3.connect",
+        lambda _: (_ for _ in ()).throw(sqlite3.OperationalError("Database not found")),
+    )
 
     with pytest.raises(sqlite3.OperationalError, match="Database not found"):
         get_data(prediction=False)

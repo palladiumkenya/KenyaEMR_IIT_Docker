@@ -11,7 +11,6 @@ from src.training import refresh_model
 # general imports
 import boto3
 import io
-import pandas as pd
 import time
 s3 = boto3.client('s3')
 
@@ -21,7 +20,7 @@ def run_retraining_pipeline(aws = True, start_date = str, end_date = str, refres
     start_time = time.time()
 
     # For retraining, prediction is False, so won't add that as argument to parent function
-    lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data.get_data(aws = aws)
+    lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data.get_training_data(aws = aws)
 
     # Run cleaning and feature preparation functions
     lab = clean_data.clean_lab(lab, start_date = start_date)

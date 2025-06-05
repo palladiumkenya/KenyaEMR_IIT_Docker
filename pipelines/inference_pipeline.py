@@ -8,20 +8,10 @@ from src.common import target_features
 from src.inference import locational_features_inf
 from src.inference import generate_inference
 
-# general imports
-import boto3
-import io
-import pandas as pd
-import time
-s3 = boto3.client('s3')
-
-def run_inference_pipeline(aws = False, prediction = True, ppk = str, sc = str, start_date = str, end_date = str):
+def run_inference_pipeline(ppk = str, sc = str, start_date = str, end_date = str):
 
     # For retraining, prediction is False, so won't add that as argument to parent function
-    lab, pharmacy, visits, dem, mfl, dhs, txcurr = get_data.get_data(aws = aws, 
-                                                                     prediction = prediction,
-                                                                     patientPK= ppk,
-                                                                     sitecode= sc)
+    lab, pharmacy, visits, dem = get_data.get_inference_data(patientPK= ppk, sitecode= sc)
 
     # Run cleaning and feature preparation functions
     lab = clean_data.clean_lab(lab, start_date = start_date)
@@ -39,9 +29,7 @@ def run_inference_pipeline(aws = False, prediction = True, ppk = str, sc = str, 
     return pred
 
 if __name__ == "__main__":
-    run_inference_pipeline(aws = False,
-                           prediction = True, 
-                           ppk = "7E14A8034F39478149EE6A4CA37A247C631D17907C746BE0336D3D7CEC68F66F",
+    run_inference_pipeline(ppk = "7E14A8034F39478149EE6A4CA37A247C631D17907C746BE0336D3D7CEC68F66F",
                            sc = "13074",
                             start_date = "2021-01-01",
                             end_date = "2025-01-15")
