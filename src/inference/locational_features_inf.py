@@ -1,18 +1,9 @@
-import boto3
-import io
 import pandas as pd
-
 
 def get_locational_features(targets_df):
 
-    # connect to s3
-    s3 = boto3.client("s3")
-    bucket = "kehmisjan2025"
-    key = "locational_variables_latest.csv"
-
-    # download the file into memory
-    obj = s3.get_object(Bucket=bucket, Key=key)
-    loc_df = pd.read_csv(io.BytesIO(obj["Body"].read()))
+    # read in locational_variables_latest.csv from the data folder
+    loc_df = pd.read_csv("data/locational_variables_latest.csv")
 
     # make sure sitecode is a string in both targets_df and loc_df
     targets_df["sitecode"] = targets_df["sitecode"].astype(str)
