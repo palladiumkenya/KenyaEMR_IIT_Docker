@@ -10,3 +10,7 @@ test:
 
 format:
 	black src/ tests/
+
+retrain-and-build:
+    python pipelines/retrain_pipeline.py
+    docker build -t kenyaemr-inference .
