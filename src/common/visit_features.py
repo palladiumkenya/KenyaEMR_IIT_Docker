@@ -5,6 +5,19 @@ from . import helpers
 
 def prep_visit_features(df):
 
+    """ Prepares visit features for the visit data. """
+
+    # if the dataframe is empty, return an empty dataframe with the required columns:
+    if df.empty:
+        return pd.DataFrame(
+            columns=['key', 'sitecode', 'visitdate', 'visittype', 'visitby', 'tcareason',
+       'pregnant', 'pregnant_missing', 'breastfeeding',
+       'breastfeeding_missing', 'stabilityassessment', 'differentiatedcare',
+       'whostage', 'emr', 'adherence', 'sex', 'age', 'maritalstatus',
+       'educationlevel', 'occupation', 'nad_imputed', 'nad_imputation_flag',
+       'bmi', 'regimen_switch', 'startartdate'])
+     
+
     # first, parse dob and startartdate with the parse_long_date function
     df["dob"] = df["dob"].apply(helpers.parse_long_date)
     df["startartdate"] = df["startartdate"].apply(helpers.parse_long_date)

@@ -145,7 +145,12 @@ def get_inference_data(patientPK=None, sitecode=None):
     # Fetch all rows from the executed query
     rows = cursor.fetchall()
     # Create a DataFrame from the fetched rows
-    lab = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
+    # if rows is empty, return empty DataFrame, set lab to an empty dataframe
+    if not rows:
+        lab = pd.DataFrame(columns=[column[0] for column in cursor.description])
+    else:
+        # Create a DataFrame from the fetched rows
+        lab = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
 
     # Define the SQL query to fetch data from the 'pharmacy' table
     query = "SELECT * FROM pharmacy WHERE PatientPKHash = ? AND SiteCode = ?"
@@ -154,7 +159,13 @@ def get_inference_data(patientPK=None, sitecode=None):
     # Fetch all rows from the executed query
     rows = cursor.fetchall()
     # Create a DataFrame from the fetched rows
-    pharmacy = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
+    if not rows:
+        pharmacy = pd.DataFrame(columns=[column[0] for column in cursor.description])
+    else:
+        # Create a DataFrame from the fetched rows
+        pharmacy = pd.DataFrame(
+            rows, columns=[column[0] for column in cursor.description]
+        )
 
     # Define the SQL query to fetch data from the 'visits' table
     query = "SELECT * FROM visits WHERE PatientPKHash = ? AND SiteCode = ?"
@@ -163,7 +174,13 @@ def get_inference_data(patientPK=None, sitecode=None):
     # Fetch all rows from the executed query
     rows = cursor.fetchall()
     # Create a DataFrame from the fetched rows
-    visits = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
+    if not rows:
+        visits = pd.DataFrame(columns=[column[0] for column in cursor.description])
+    else:
+        # Create a DataFrame from the fetched rows
+        visits = pd.DataFrame(
+            rows, columns=[column[0] for column in cursor.description]
+        )
 
     # Define the SQL query to fetch data from the 'dem' table
     # Execute the query with parameters
@@ -172,6 +189,10 @@ def get_inference_data(patientPK=None, sitecode=None):
     # Fetch all rows from the executed query
     rows = cursor.fetchall()
     # Create a DataFrame from the fetched rows
-    dem = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
+    if not rows:
+        dem = pd.DataFrame(columns=[column[0] for column in cursor.description])
+    else:
+        # Create a DataFrame from the fetched rows
+        dem = pd.DataFrame(rows, columns=[column[0] for column in cursor.description])
 
     return lab, pharmacy, visits, dem

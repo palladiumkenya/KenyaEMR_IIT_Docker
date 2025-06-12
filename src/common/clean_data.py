@@ -1,11 +1,23 @@
 from . import helpers
 from datetime import datetime
+import pandas as pd
 
 
 def clean_lab(data, start_date):
     """
     Clean the lab data by removing unnecessary columns and renaming others.
     """
+
+    # if data is empty retun an empty dataframe with the following columns, some of which are
+    # not in the data, but we want to return them anyway
+    # the columns are:
+    # 'key', 'orderedbydate', 'testname', 'testresultcat'
+    if data.empty:
+        return pd.DataFrame(
+            columns=["key", "orderedbydate", "testname", "testresultcat"]
+        )
+
+    # if data is not empty, we proceed with cleaning
     # make column names lower case
     data.columns = data.columns.str.lower()
 
@@ -56,6 +68,23 @@ def clean_pharmacy(data, start_date, end_date):
     """
     Clean the pharmacy data by removing unnecessary columns and renaming others.
     """
+
+    # if data is empty retun an empty dataframe with the following columns, some of which are
+    # not in the data, but we want to return them anyway
+    # the columns are:
+    # 'key', 'orderedbydate', 'testname', 'testresultcat'
+    if data.empty:
+        return pd.DataFrame(
+            columns=[
+                "key",
+                "sitecode",
+                "dispensedate",
+                "nad_imputed",
+                "nad_imputation_flag",
+                "drug",
+            ]
+        )
+
     # make column names lower case
     data.columns = data.columns.str.lower()
 
@@ -109,6 +138,51 @@ def clean_visits(data, dem_df, start_date, end_date):
     """
     Clean the visits data by removing unnecessary columns and renaming others.
     """
+
+    # if data is empty retun an empty dataframe with the following columns, some of which are
+    # not in the data, but we want to return them anyway
+    # the columns are:
+    # 'key', 'orderedbydate', 'testname', 'testresultcat'
+    if data.empty:
+        return pd.DataFrame(
+            columns=[
+                "patientpkhash",
+                "sitecode",
+                "visitdate",
+                "visittype",
+                "visitby",
+                "nextappointmentdate",
+                "tcareason",
+                "pregnant",
+                "breastfeeding",
+                "stabilityassessment",
+                "differentiatedcare",
+                "whostage",
+                "whostagingoi",
+                "height",
+                "weight",
+                "emr",
+                "project",
+                "adherence",
+                "adherencecategory",
+                "bp",
+                "oi",
+                "oidate",
+                "currentregimen",
+                "appointmentreminderwillingness",
+                "key",
+                "sex",
+                "maritalstatus",
+                "educationlevel",
+                "occupation",
+                "artoutcomedescription",
+                "startartdate",
+                "dob",
+                "nad_imputed",
+                "nad_imputation_flag",
+            ]
+        )
+
     # make column names lower case
     data.columns = data.columns.str.lower()
     dem_df.columns = dem_df.columns.str.lower()

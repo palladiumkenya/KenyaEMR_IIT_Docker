@@ -4,6 +4,19 @@ import numpy as np
 
 def prep_demographics(df):
 
+    # if the dataframe is empty, return an empty dataframe
+    if df.empty:
+        return pd.DataFrame(
+            columns = ['key', 'sitecode', 'visitdate', 'visittype', 'visitby', 'tcareason',
+       'pregnant', 'pregnant_missing', 'breastfeeding',
+       'breastfeeding_missing', 'stabilityassessment', 'differentiatedcare',
+       'whostage', 'emr', 'adherence', 'sex', 'age', 'maritalstatus',
+       'educationlevel', 'occupation', 'nad_imputed', 'nad_imputation_flag',
+       'bmi', 'regimen_switch', 'startartdate', 'month', 'dayofweek',
+       'is_friday', 'daystonextappointment', 'timeonart', 'timeatfacility',
+       'firstvisit']
+        )
+
     # make sure the columns are in the right format
     df["visitdate"] = pd.to_datetime(df["visitdate"], errors="coerce")
     df["startartdate"] = pd.to_datetime(df["startartdate"], errors="coerce")
