@@ -2,13 +2,13 @@
 
 # KenyaEMR_IIT
  
-## Docker build and run
-docker build -t kenyaemr-inference .
+## Docker build and run 
+docker build -t kenyaemr-inference . \
 docker run -p 8000:8000 kenyaemr-inference
 
 ### Clean up docker images to save space
-docker container prune 
-docker rmi "IMAGE ID"
+docker container prune \
+docker rmi "IMAGE ID" \
 docker builder prune
 
 ### Example Payload
