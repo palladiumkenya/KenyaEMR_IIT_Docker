@@ -23,11 +23,11 @@ def inference(request: InferenceRequest):
             start_date=request.start_date,
             end_date=request.end_date,
         )
-        # If result is a DataFrame or numpy type, convert to JSON serializable
-        if hasattr(result, "to_dict"):
-            return {"result": result.to_dict(orient="records")}
-        elif isinstance(result, (np.generic, np.ndarray)):
-            return {"result": result.item()}
+        # # If result is a DataFrame or numpy type, convert to JSON serializable
+        # if hasattr(result, "to_dict"):
+        #     return {"result": result.to_dict(orient="records")}
+        # elif isinstance(result, (np.generic, np.ndarray)):
+        #     return {"result": result.item()}
         return {"result": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

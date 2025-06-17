@@ -2,7 +2,6 @@ import xgboost as xgb
 from sklearn.preprocessing import OneHotEncoder
 from datetime import datetime
 import random
-import boto3
 import io
 import os
 import pandas as pd
@@ -95,10 +94,10 @@ def gen_inference(df):
 
     # make prediction
     preds = bst.predict(xgb_df)
-    pred_out = preds[0]
+    pred_out = preds[0].item()
 
     # load thresholds from models/thresholds.pkl
-    thresholds_file = "models/thresholds.pkl"
+    thresholds_file = "models/thresholds_latest.pkl"
     if not os.path.exists(thresholds_file):
         raise FileNotFoundError(
             f"Thresholds file {thresholds_file} not found. Please train the model first."
