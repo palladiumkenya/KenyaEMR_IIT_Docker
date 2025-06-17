@@ -95,6 +95,31 @@ def gen_inference(df):
 
     # make prediction
     preds = bst.predict(xgb_df)
+    pred_out = preds[0]
 
-    # return prediction that is first item in preds
-    return preds[0]
+    # load thresholds from models/thresholds.pkl
+    thresholds_file = "models/thresholds.pkl"
+    if not os.path.exists(thresholds_file):
+        raise FileNotFoundError(
+            f"Thresholds file {thresholds_file} not found. Please train the model first."
+        )
+    with open(thresholds_file, "rb") as f:
+        thresholds = pickle.load(f)
+
+    # apply thresholds to pred_cat
+    # if pred is greater than thresholds['high'], pred_cat returns 'high',
+    # else if pred is greater than thresholds['medium'], return 'medium',
+    # else return 'low'
+    if pred_out > thresholds["high"]:
+        pred_cat = "high"
+    elif pred_out > thresholds["medium"]:
+        pred_cat = "medium"
+    else:
+        pred_cat = "low"
+
+    # return pred_out and pred_cat
+    pred_out = {
+        "pred_out": pred_out,
+        "pred_cat": pred_cat,
+    }
+    return pred_out

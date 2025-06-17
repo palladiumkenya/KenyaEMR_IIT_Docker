@@ -145,6 +145,21 @@ def refresh_model(pipeline=False, targets_df=None, targets_aws=None, refresh_dat
     gb_model.save_model(f"models/mod_{timestamp}.json")
     shutil.copyfile(f"models/mod_{timestamp}.json", "models/mod_latest.json")
 
+    # Generate predictions on the validation set
+    preds = gb_model.predict(dval)
+    # get the 25th percentile of the predictions
+    threshold_high = pd.Series(preds).quantile(0.75)
+    threshold_medium = pd.Series(preds).quantile(0.5)
+    # combine thresholds into a dictionary
+    thresholds = {
+        "high": threshold_high,
+        "medium": threshold_medium,
+    }   
+    # save thresholds to a file with timestamp and as latest
+    with open(f"models/thresholds_{timestamp}.pkl", "wb") as f:
+        pickle.dump(thresholds, f)
+    shutil.copyfile(f"models/thresholds_{timestamp}.pkl", "models/thresholds_latest.pkl")
+
 
 if __name__ == "__main__":
     refresh_model(

@@ -1,4 +1,4 @@
-FROM python:3.12.1-slim
+FROM python:3.9-slim
 
 WORKDIR /app
 ENV PYTHONPATH=/app
@@ -8,6 +8,7 @@ COPY pipelines /app/pipelines/
 COPY models/feature_order.pkl /app/models/feature_order.pkl
 COPY models/mod_latest.json /app/models/mod_latest.json
 COPY models/ohe_latest.pkl /app/models/ohe_latest.pkl
+COPY models/threshold_latest.pkl /app/models/threshold_latest.pkl
 COPY src /app/src/
 COPY data /app/data/
 COPY requirements.txt /app/
