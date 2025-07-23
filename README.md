@@ -2,13 +2,21 @@
 
 # KenyaEMR_IIT
  
-## Docker build and run 
-docker build -t kenyaemr-inference . \
-docker run -p 8000:8000 kenyaemr-inference
+## Docker build container
+docker build -t kenyaemr-inference .
+
+## Data and settings
+Check that these files exist:
+1. /opt/ml/iit/settings.json -- facility specific settings
+2. /opt/ml/iit/locational_variables_latest.csv -- facility location variables
+
+## Docker run 
+# docker run -p 8000:8000 kenyaemr-inference
+docker run -v /opt/ml/iit/settings.json:/data/settings.json -v /opt/ml/iit/locational_variables_latest.csv:/data/locational_variables_latest.csv -p 8000:8000 kenyaemr-inference
 
 ### Clean up docker images to save space
-docker container prune \
-docker rmi "IMAGE ID" \
+docker container prune
+docker rmi "IMAGE ID"
 docker builder prune
 
 ### Example Payload

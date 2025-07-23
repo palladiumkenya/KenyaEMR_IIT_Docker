@@ -3,9 +3,73 @@ import pandas as pd
 import boto3
 import pyreadr
 import tempfile
+import json
+import mysql.connector
+from mysql.connector import Error
 
+def load_settings(path='/data/settings.json'):
+    try:
+        with open(path, 'r') as f:
+            config = json.load(f)
+        return config
+    except Exception as e:
+        raise RuntimeError(f"Failed to load settings: {e}")
 
-def get_training_data(aws=False):
+def get_training_data_mysql(aws=False):
+    config = load_settings()
+
+    try:
+        connection = mysql.connector.connect(
+            host=config["mysql_url"],
+            port=int(config["mysql_port"]),
+            database=config["mysql_database"],
+            user=config["mysql_username"],
+            password=config["mysql_password"]
+        )
+
+        if connection.is_connected():
+            print("Connected to MySQL 8")
+
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute("SELECT user_id, username FROM users LIMIT 5;")
+            rows = cursor.fetchall()
+
+            for row in rows:
+                print(row)
+
+    except Error as e:
+        print(f"MySQL Error: {e}")
+
+    return lab, pharmacy, visits, dem, mfl, dhs, txcurr
+
+def get_inference_data_mysql(patientPK=None, sitecode=None):
+    config = load_settings()
+
+    try:
+        connection = mysql.connector.connect(
+            host=config["mysql_url"],
+            port=int(config["mysql_port"]),
+            database=config["mysql_database"],
+            user=config["mysql_username"],
+            password=config["mysql_password"]
+        )
+
+        if connection.is_connected():
+            print("Connected to MySQL 8")
+
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute("SELECT user_id, username FROM users LIMIT 5;")
+            rows = cursor.fetchall()
+
+            for row in rows:
+                print(row)
+
+    except Error as e:
+        print(f"MySQL Error: {e}")
+
+    return lab, pharmacy, visits, dem
+
+def get_training_data_sqlite(aws=False):
 
     # Initialize variables to None
     pharmacy = lab = visits = dem = mfl = dhs = txcurr = None
@@ -130,7 +194,7 @@ def get_training_data(aws=False):
     return lab, pharmacy, visits, dem, mfl, dhs, txcurr
 
 
-def get_inference_data(patientPK=None, sitecode=None):
+def get_inference_data_sqlite(patientPK=None, sitecode=None):
 
     # Initialize variables to None
     pharmacy = lab = visits = dem = None
