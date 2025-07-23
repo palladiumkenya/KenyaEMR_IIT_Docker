@@ -1,5 +1,5 @@
 # Local application imports
-from src.inference import get_inference_data
+from src.inference import get_inference_data_mysql
 from src.common import clean_data
 from src.common import visit_features
 from src.common import dem_features
@@ -11,7 +11,7 @@ from src.inference import generate_inference
 def run_inference_pipeline(ppk = str, sc = str, start_date = str, end_date = str):
 
     # For retraining, prediction is False, so won't add that as argument to parent function
-    lab, pharmacy, visits, dem = get_inference_data.get_inference_data(patientPK= ppk, sitecode= sc)
+    lab, pharmacy, visits, dem = get_inference_data_mysql.get_inference_data_mysql(patientPK= ppk, sitecode= sc)
 
     # Run cleaning and feature preparation functions
     lab = clean_data.clean_lab(lab, start_date = start_date)

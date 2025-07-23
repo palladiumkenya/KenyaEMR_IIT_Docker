@@ -2,7 +2,8 @@ import sqlite3
 import pytest
 import os
 from src.common.get_data import get_training_data
-from src.common.get_data import get_inference_data
+from src.common.get_data import get_inference_data_mysql
+from src.common.get_data import get_inference_data_sqlite
 
 # test cases for get_training_data function
 
@@ -29,7 +30,7 @@ def test_get_data_with_prediction_valid():
     sitecode = "13074"
 
     # Call the function with prediction=True
-    lab, pharmacy, visits, dem = get_inference_data(
+    lab, pharmacy, visits, dem = get_inference_data_mysql(
         patientPK=patientPK, sitecode=sitecode
     )
 
@@ -53,7 +54,7 @@ def test_get_data_with_prediction_invalid():
     sitecode = "invalid_site_code"
 
     # Call the function with prediction=True
-    lab, pharmacy, visits, dem = get_inference_data(
+    lab, pharmacy, visits, dem = get_inference_data_mysql(
         patientPK=patientPK, sitecode=sitecode
     )
 
