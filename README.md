@@ -11,7 +11,7 @@ Check that these files exist:
 2. /opt/ml/iit/locational_variables_latest.csv -- facility location variables
 
 ## Docker run 
-# docker run -p 8000:8000 kenyaemr-inference
+<!-- docker run -p 8000:8000 kenyaemr-inference -->
 1. docker run -v /opt/ml/iit/settings.json:/data/settings.json -v /opt/ml/iit/locational_variables_latest.csv:/data/locational_variables_latest.csv --add-host=host.docker.internal:host-gateway -p 8000:8000 kenyaemr-inference
 
 ### Clean up docker images to save space
