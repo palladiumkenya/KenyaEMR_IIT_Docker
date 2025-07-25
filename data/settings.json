@@ -1,7 +1,7 @@
 {
-    "mysql_url": "127.0.0.1",
+    "mysql_url": "",
     "mysql_port": "3306",
     "mysql_database": "openmrs",
-    "mysql_username": "root",
-    "mysql_password": "patnox"
+    "mysql_username": "",
+    "mysql_password": ""
 }
