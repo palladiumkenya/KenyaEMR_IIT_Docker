@@ -28,7 +28,7 @@ def get_training_data_mysql(aws=False):
         )
 
         if connection.is_connected():
-            print("Connected to MySQL 8")
+            print("Connected to MySQL For Training")
 
             cursor = connection.cursor(dictionary=True)
             cursor.execute("SELECT user_id, username FROM users LIMIT 5;")
@@ -55,7 +55,7 @@ def get_inference_data_mysql(patientPK=None, sitecode=None):
         )
 
         if connection.is_connected():
-            print("Connected to MySQL 8")
+            print("Connected to MySQL For Inference 2")
 
             cursor = connection.cursor(dictionary=True)
             cursor.execute("SELECT user_id, username FROM users LIMIT 5;")
