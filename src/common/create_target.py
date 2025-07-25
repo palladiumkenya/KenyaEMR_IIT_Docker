@@ -44,6 +44,7 @@ def create_target(visits_df, pharmacy_df, dem_df):
 
     # take dem_df, set variables to lower case, and select key and artoutcomedescription
     dem_df.columns = dem_df.columns.str.lower()
+    dem_df['key'] = dem_df['patientpk'].astype(str) + dem_df['sitecode'].astype(str)
     dem_df = dem_df[["key", "artoutcomedescription"]]
     # set the values in the artoutcomedescription column to lower case and remove whitespace
     dem_df.loc[:, "artoutcomedescription"] = dem_df.loc[
