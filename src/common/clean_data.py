@@ -195,12 +195,13 @@ def clean_visits(data, dem_df, start_date, end_date):
     data["key"] = data["patientpkhash"] + data["sitecode"]
 
     # Repeat for dem_df
-    # sometimes, we have MFL code instead of sitecode, so we need to create sitecode
-    if "sitecode" not in dem_df.columns:
-        dem_df["sitecode"] = dem_df["mflcode"]
-    dem_df["sitecode"] = dem_df["sitecode"].astype(str)
-    # now concatenate
-    dem_df["key"] = dem_df["patientpkhash"] + dem_df["sitecode"]
+    if "key" not in dem_df.columns:
+        # sometimes, we have MFL code instead of sitecode, so we need to create sitecode
+        if "sitecode" not in dem_df.columns:
+            dem_df["sitecode"] = dem_df["mflcode"]
+        dem_df["sitecode"] = dem_df["sitecode"].astype(str)
+        # now concatenate
+        dem_df["key"] = dem_df["patientpkhash"] + dem_df["sitecode"]
 
     # first, merge visits with demographics (dem) on the "key" column
     data = data.merge(

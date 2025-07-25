@@ -27,7 +27,7 @@ def test_create_target_minimal():
     )
     pharmacy["dispensedate"] = pd.to_datetime(pharmacy["dispensedate"])
     pharmacy["nad_imputed"] = pd.to_datetime(pharmacy["nad_imputed"])
-    dem = pd.DataFrame({"key": ["A"], "artoutcomedescription": ["active"]})
+    dem = pd.DataFrame({"key": ["A"], "sitecode": ["001"], "artoutcomedescription": ["active"]})
     result = create_target(visits, pharmacy, dem)
     assert "key" in result.columns
     assert "visitdate" in result.columns
@@ -59,7 +59,7 @@ def test_create_target_deduplication():
     )
     pharmacy["dispensedate"] = pd.to_datetime(pharmacy["dispensedate"])
     pharmacy["nad_imputed"] = pd.to_datetime(pharmacy["nad_imputed"])
-    dem = pd.DataFrame({"key": ["A"], "artoutcomedescription": ["active"]})
+    dem = pd.DataFrame({"key": ["A"], "sitecode": ["123"], "artoutcomedescription": ["active"]})
     result = create_target(visits, pharmacy, dem)
     print(result)
     # Should deduplicate and keep the row with nad_imputation_flag 0 and latest nad
@@ -90,7 +90,7 @@ def test_create_target_iit_logic():
     )
     pharmacy["dispensedate"] = pd.to_datetime(pharmacy["dispensedate"])
     pharmacy["nad_imputed"] = pd.to_datetime(pharmacy["nad_imputed"])
-    dem = pd.DataFrame({"key": ["A"], "artoutcomedescription": ["active"]})
+    dem = pd.DataFrame({"key": ["A"], "sitecode": ["123"], "artoutcomedescription": ["active"]})
     result = create_target(visits, pharmacy, dem)
     # The first visit resulted in iit (gap > 30 days)
     assert result[result["visitdate"] == "2022-01-01"]["iit"].iloc[0] == 1
@@ -119,7 +119,7 @@ def test_create_target_artoutcomedescription_filter():
     )
     pharmacy["dispensedate"] = pd.to_datetime(pharmacy["dispensedate"])
     pharmacy["nad_imputed"] = pd.to_datetime(pharmacy["nad_imputed"])
-    dem = pd.DataFrame({"key": ["A"], "artoutcomedescription": ["died"]})
+    dem = pd.DataFrame({"key": ["A"], "sitecode": ["123"], "artoutcomedescription": ["died"]})
     result = create_target(visits, pharmacy, dem)
     print(result)
     # Should filter out because artoutcomedescription is died
@@ -150,7 +150,7 @@ def test_create_target_unresolved_outcome():
     )
     pharmacy["dispensedate"] = pd.to_datetime(pharmacy["dispensedate"])
     pharmacy["nad_imputed"] = pd.to_datetime(pharmacy["nad_imputed"])
-    dem = pd.DataFrame({"key": ["A"], "artoutcomedescription": ["active"]})
+    dem = pd.DataFrame({"key": ["A"], "sitecode": ["123"], "artoutcomedescription": ["active"]})
     # fudge max_visitdate so that nad+30 > max_visitdate
     # (simulate by making only one visit)
     result = create_target(visits, pharmacy, dem)
