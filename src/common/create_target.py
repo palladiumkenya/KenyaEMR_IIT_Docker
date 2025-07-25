@@ -44,6 +44,12 @@ def create_target(visits_df, pharmacy_df, dem_df):
 
     # take dem_df, set variables to lower case, and select key and artoutcomedescription
     dem_df.columns = dem_df.columns.str.lower()
+    # prep key variable for merging
+    # sometimes, we have MFL code instead of sitecode, so we need to create sitecode
+    if "sitecode" not in dem_df.columns:
+        dem_df["sitecode"] = dem_df["mflcode"]
+    dem_df["sitecode"] = dem_df["sitecode"].astype(str)
+    dem_df["key"] = dem_df["patientpkhash"] + dem_df["sitecode"]
     dem_df = dem_df[["key", "artoutcomedescription"]]
     # set the values in the artoutcomedescription column to lower case and remove whitespace
     dem_df.loc[:, "artoutcomedescription"] = dem_df.loc[
