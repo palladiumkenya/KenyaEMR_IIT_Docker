@@ -45,12 +45,23 @@ def gen_inference(df):
     df.columns = df.columns.str.lower().str.replace(" ", "_")
 
     # ensure columns are right dtypes
+    # for col, dtype in expected_dtypes.items():
+    #     if col in df.columns:
+    #         df[col] = df[col].astype(dtype)
+
     for col, dtype in expected_dtypes.items():
         if col in df.columns:
             if dtype in [float, "float", "float64", int, "int", "int64"]:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
             else:
                 df[col] = df[col].astype(dtype)
+            # try:
+            #     print(f"Converting column '{col}' to {dtype}...")
+            #     df[col] = df[col].astype(dtype)
+            # except Exception as e:
+            #     print(f"❌ Error converting column '{col}' to {dtype}")
+            #     print("Unique values in the column:", df[col].unique()[:10])  # show a few
+            #     raise e  # re-raise the error to preserve traceback
 
     # load encoder which is called ohe_latest.pkl
     # from the models directory

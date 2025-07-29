@@ -228,14 +228,14 @@ def clean_visits(data, dem_df, start_date, end_date):
     # make the values in each column lower case except for the key column
     cols_to_convert = data.columns.difference(["key"])
 
-    print("DEBUG: data.shape before applymap:", data.shape)
-    print("DEBUG: cols_to_convert:", cols_to_convert)
-    print("DEBUG: data[cols_to_convert].shape:", data[cols_to_convert].shape)
-    print("DEBUG: data[cols_to_convert].head():\n", data[cols_to_convert].head())
+    # print("DEBUG: data.shape before applymap:", data.shape)
+    # print("DEBUG: cols_to_convert:", cols_to_convert)
+    # print("DEBUG: data[cols_to_convert].shape:", data[cols_to_convert].shape)
+    # print("DEBUG: data[cols_to_convert].head():\n", data[cols_to_convert].head())
 
-    print("DEBUG: data.columns:", list(data.columns))
-    print("DEBUG: Are there duplicates?", len(data.columns) != len(set(data.columns)))
-    print("DEBUG: END")
+    # print("DEBUG: data.columns:", list(data.columns))
+    # print("DEBUG: Are there duplicates?", len(data.columns) != len(set(data.columns)))
+    # print("DEBUG: END")
 
     data[cols_to_convert] = data[cols_to_convert].applymap(
         lambda x: x.lower() if isinstance(x, str) else x
