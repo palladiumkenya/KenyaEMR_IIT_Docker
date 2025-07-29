@@ -161,7 +161,7 @@ def prep_target_pharmacy_features(targets_df, pharmacy_df):
     # first, create a new column in pharmacy_df called optimizedregimen that is 1
     # if the drug variable contains the string "DTG", else 0
     pharmacy_df["optimizedhivregimen"] = pharmacy_df["drug"].apply(
-        lambda x: 1 if "DTG" in x else 0
+        lambda x: 1 if isinstance(x, str) and "DTG" in x else 0
     )
 
     # select key, visitdate in place of dispensedate, and optimizedregimen
