@@ -42,7 +42,10 @@ def gen_inference(df):
     # ensure columns are right dtypes
     for col, dtype in expected_dtypes.items():
         if col in df.columns:
-            df[col] = df[col].astype(dtype)
+            if dtype in [float, "float", "float64", int, "int", "int64"]:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+            else:
+                df[col] = df[col].astype(dtype)
 
     # load encoder which is called ohe_latest.pkl
     # from the models directory
