@@ -121,21 +121,29 @@ def impute_date(df, key_var, contact_var, return_var):
 
     # Group by key_var and apply the imputation logic
     def impute_group(group):
-        # Carry forward the days_between_group from the prior row
-        group["nad_imputed"] = group.apply(
-            lambda row: (
-                row[contact_var]
-                + pd.Timedelta(
-                    days=group.loc[
-                        group.index[group.index.get_loc(row.name) - 1],
-                        "days_between_group",
-                    ]
-                )
-                if pd.isna(row[return_var])
-                else row[return_var]
-            ),
-            axis=1,
-        )
+        if len(group) == 1:
+            # Only one row: impute as contact_var + 30 if missing, else use return_var
+            group["nad_imputed"] = group.apply(
+                lambda row: (
+                    row[contact_var] + pd.Timedelta(days=30)
+                    if pd.isna(row[return_var])
+                    else row[return_var]
+                ),
+                axis=1,
+            )
+        else:
+            # Multiple rows: use previous row's days_between_group
+            group = group.copy()
+            for idx, row in group.iterrows():
+                if pd.isna(row[return_var]):
+                    prev_idx = group.index.get_loc(idx) - 1
+                    if prev_idx >= 0:
+                        days = group.iloc[prev_idx]["days_between_group"]
+                    else:
+                        days = 30  # fallback if for some reason prev_idx < 0
+                    group.at[idx, "nad_imputed"] = row[contact_var] + pd.Timedelta(days=days)
+                else:
+                    group.at[idx, "nad_imputed"] = row[return_var]
         return group
 
     df = (
