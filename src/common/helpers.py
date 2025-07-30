@@ -120,44 +120,24 @@ def impute_date(df, key_var, contact_var, return_var):
     df = df.sort_values(by=[key_var, contact_var], ascending=[True, False])
 
     # Group by key_var and apply the imputation logic
-    def impute_group(group):
-        if len(group) == 1:
-            # Only one row: impute as contact_var + 30 if missing, else use return_var
-            group["nad_imputed"] = group.apply(
-                lambda row: (
-                    row[contact_var] + pd.Timedelta(days=30)
-                    if pd.isna(row[return_var])
-                    else row[return_var]
-                ),
-                axis=1,
-            )
-        else:
-            # Multiple rows: use previous row's days_between_group
-            group = group.copy()
-            for idx, row in group.iterrows():
-                if pd.isna(row[return_var]):
-                    prev_idx = group.index.get_loc(idx) - 1
-                    if prev_idx >= 0:
-                        days = group.iloc[prev_idx]["days_between_group"]
-                    else:
-                        days = 30  # fallback if for some reason prev_idx < 0
-                    group.at[idx, "nad_imputed"] = row[contact_var] + pd.Timedelta(days=days)
-                else:
-                    group.at[idx, "nad_imputed"] = row[return_var]
-        return group
-
-    df = (
-        df.groupby(key_var, group_keys=False).apply(impute_group).reset_index(drop=True)
+    # Use shift to get previous row's days_between_group per patient
+    df["prev_days_between_group"] = (
+        df.groupby(key_var)["days_between_group"].shift(1).fillna(30)
     )
 
-    # If any nad_imputed is still missing, impute it as contact_var plus 30 days
-    df["nad_imputed"] = df.apply(
-        lambda row: (
-            row[contact_var] + pd.Timedelta(days=30)
-            if pd.isna(row["nad_imputed"])
-            else row["nad_imputed"]
-        ),
-        axis=1,
+    # Impute nad (next appointment date)
+    df["nad_imputed"] = df[return_var]
+
+    missing_mask = df["nad_imputed"].isna()
+    df.loc[missing_mask, "nad_imputed"] = (
+        df.loc[missing_mask, contact_var] +
+        pd.to_timedelta(df.loc[missing_mask, "prev_days_between_group"], unit="D")
+    )
+
+    # Final fallback: if any still missing, default to 30-day interval
+    fallback_mask = df["nad_imputed"].isna()
+    df.loc[fallback_mask, "nad_imputed"] = (
+        df.loc[fallback_mask, contact_var] + pd.Timedelta(days=30)
     )
 
     # set a nad_imputation_flag variable to 1 if nad_imputed is not equal to nad, else 0
