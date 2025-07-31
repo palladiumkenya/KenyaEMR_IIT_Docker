@@ -11,26 +11,31 @@ from src.common.feature_dtypes import expected_dtypes
 
 def gen_inference(df):
 
+    if df is None or df.empty:
+        return {"pred_out": None, "pred_cat": "unavailable"}
+
+    required_cols = ["nad", "iit"]
+    missing = [col for col in required_cols if col not in df.columns]
+    if missing:
+        print(f"Missing required column(s): {missing} — cannot proceed with inference.")
+        return {"pred_out": None, "pred_cat": "unavailable"}
+
     # make sure nad is a datetime
     df["nad"] = pd.to_datetime(df["nad"], format="%Y-%m-%d")
     # make sure data is sorted by nad in descending order
     df = df.sort_values(by="nad", ascending=False)
 
-    df = df.drop(
-        columns=[
-            "key",
-            "visitdate",
-            "nad_imputation_flag",
-            "sitecode",
-            "pregnant_missing",
-            "nad",
-            "breastfeeding_missing",
-            "startartdate",
-            "month",
-            "dayofweek",
-            "timeatfacility",
-        ]
-    )
+    try:
+        df = df.drop(
+            columns=[
+                "key", "visitdate", "nad_imputation_flag", "sitecode",
+                "pregnant_missing", "nad", "breastfeeding_missing",
+                "startartdate", "month", "dayofweek", "timeatfacility",
+            ],
+            errors="ignore"  # safer option than try/except if you’re okay silently skipping
+        )
+    except KeyError as e:
+        print(f"⚠️ Unexpected missing columns during drop: {e}")
 
     # filter to emr in kenyamer and ecare
     df = df[df["emr"].isin(["kenyaemr", "ecare"])]
@@ -66,7 +71,11 @@ def gen_inference(df):
     categorical_columns = df.select_dtypes(include=["object"]).columns.tolist()
 
     # One-hot encode the categorical columns
-    encoded_features = ohe.transform(df[categorical_columns]).toarray()
+    try:
+        encoded_features = ohe.transform(df[categorical_columns]).toarray()
+    except Exception as e:
+        print(f"OneHotEncoding failed: {e}")
+        return {"pred_out": None, "pred_cat": "unavailable"}
     encoded_feature_names = ohe.get_feature_names_out(categorical_columns)
 
     # Create a DataFrame with the encoded features
@@ -80,7 +89,11 @@ def gen_inference(df):
     # make sure the columns are in the right order
     with open("models/feature_order.pkl", "rb") as f:
         feature_order = pickle.load(f)
-    final_df = final_df[feature_order]
+    try:
+        final_df = final_df[feature_order]
+    except KeyError as e:
+        print(f"❌ Feature mismatch: some expected columns are missing: {e}")
+        return {"pred_out": None, "pred_cat": "unavailable"}
 
     # convert to xgb.Dmatrix
     xgb_df = xgb.DMatrix(data=final_df.drop(columns=["iit"]), label=final_df["iit"])
@@ -96,8 +109,12 @@ def gen_inference(df):
     bst.load_model(model)
 
     # make prediction
-    preds = bst.predict(xgb_df)
-    pred_out = preds[0].item()
+    try:
+        preds = bst.predict(xgb_df)
+        pred_out = preds[0].item()
+    except Exception as e:
+        print(f"❌ Prediction failed: {e}")
+        return {"pred_out": None, "pred_cat": "unavailable"}
 
     # load thresholds from models/thresholds.pkl
     thresholds_file = "models/thresholds_latest.pkl"
@@ -119,9 +136,27 @@ def gen_inference(df):
     else:
         pred_cat = "low"
 
+    # if pred_cat is high or medium, return risk factors from final_df including:
+    # if lateness_last5 is greater than 0, return lateness_last5,
+    # if most_recent_vl is "unsuppressed", return "unsuppressed",
+    if pred_cat in ["high", "medium"]:
+        risk_factors = {
+            "avg_days_late_last5visits": final_df["lateness_last5"].iloc[0],
+            "months_on_art": final_df["timeonart"].iloc[0],
+            "most_recent_viralload": df["most_recent_vl"].iloc[0],
+            # if adherence is 1, then return "good", if 0, return "poor", otherwise None
+            "adherence": "good" if final_df["adherence"].iloc[0] == 1 else "poor" if final_df["adherence"].iloc[0] == 0 else None,
+            # if visittype is 1, then return "unscheduled visits", otherwise return "no unscheduled visits"
+            "unscheduled_visits": "unscheduled visits" if final_df["visittype"].iloc[0] == 1 else "no unscheduled visits",
+        }
+    else:
+        risk_factors = None
+
     # return pred_out and pred_cat
     pred_out = {
         "pred_out": pred_out,
         "pred_cat": pred_cat,
+        "risk_factors": risk_factors,
+        "evaluation_date": datetime.now().strftime("%Y-%m-%d"),
     }
     return pred_out
