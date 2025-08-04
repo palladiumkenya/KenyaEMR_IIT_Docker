@@ -13,6 +13,21 @@ def prep_target_visit_features(targets_df, visits_df):
     Returns:
     - pd.DataFrame: A DataFrame containing the merged target visit features.
     """
+
+    if visits_df is None or visits_df.empty:
+        # Add safe default columns to avoid downstream breakage
+        targets_df["cascadestatus"] = "neverdisengaged"
+        targets_df["lastvd"] = pd.NA
+        targets_df["late"] = 0
+        targets_df["late14"] = 0
+        targets_df["late30"] = 0
+        for suffix in ["last3", "last5", "last10"]:
+            targets_df[f"lateness_{suffix}"] = 0
+            targets_df[f"late_{suffix}"] = 0
+            targets_df[f"late14_{suffix}"] = 0
+            targets_df[f"late30_{suffix}"] = 0
+        return targets_df
+
     ## Cascade features
     # First, for every instance of IIT, we want to calculate how long until reengagement
     # sort by key and in ascending order of visitdate
@@ -158,10 +173,15 @@ def prep_target_pharmacy_features(targets_df, pharmacy_df):
     Returns:
     - pd.DataFrame: A DataFrame containing the merged target pharmacy features.
     """
+
+    if pharmacy_df is None or pharmacy_df.empty:
+        targets_df["optimizedhivregimen"] = 0
+        return targets_df
+
     # first, create a new column in pharmacy_df called optimizedregimen that is 1
     # if the drug variable contains the string "DTG", else 0
     pharmacy_df["optimizedhivregimen"] = pharmacy_df["drug"].apply(
-        lambda x: 1 if "DTG" in x else 0
+        lambda x: 1 if isinstance(x, str) and "DTG" in x else 0
     )
 
     # select key, visitdate in place of dispensedate, and optimizedregimen
@@ -204,6 +224,15 @@ def prep_target_lab_features(targets_df, lab_df):
     Returns:
     - pd.DataFrame: A DataFrame containing the merged target lab features.
     """
+
+    if lab_df is None or lab_df.empty:
+        print("⚠️ lab_df is empty — skipping lab feature preparation.")
+        targets_df["most_recent_vl"] = "novalidvl"
+        targets_df["ahd"] = targets_df.apply(
+            lambda x: 1 if (x["age"] < 5 or x["whostage"] in [3, 4]) else 0, axis=1
+        )
+        return targets_df
+
     # we'll need to join vl and cd4 data separately onto targets_df since they
     # can be taken on different days
     # first, get vl data

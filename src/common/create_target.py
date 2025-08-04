@@ -15,6 +15,17 @@ def create_target(visits_df, pharmacy_df, dem_df):
         pd.DataFrame: DataFrame with the target variable added.
     """
 
+    if visits_df.empty and pharmacy_df.empty:
+        print("Both visits and pharmacy data are empty — no target to generate.")
+        return pd.DataFrame()
+
+    if visits_df.empty:
+        visits_df = pd.DataFrame(columns=["key", "visitdate", "nad_imputed", "nad_imputation_flag", "sitecode"])
+
+    if pharmacy_df.empty:
+        pharmacy_df = pd.DataFrame(columns=["key", "dispensedate", "nad_imputed", "nad_imputation_flag", "sitecode"])
+
+
     # select the relevant columns from visits_df and rename nad_imputed to nad
     # relevant columns are key, visitdate, nad_imputed, nad_imputation_flag, sitecode
     visits_df = visits_df[
@@ -40,18 +51,32 @@ def create_target(visits_df, pharmacy_df, dem_df):
 
     # Now, vertically stack the two dataframes
     # concatenate the two dataframes
-    target_df = pd.concat([visits_df, pharmacy_df], axis=0)
+    target_df = pd.concat([visits_df, pharmacy_df], axis=0, ignore_index=True)
 
     # take dem_df, set variables to lower case, and select key and artoutcomedescription
     dem_df.columns = dem_df.columns.str.lower()
+
+    # prep key variable for merging
+    # sometimes, we have MFL code instead of sitecode, so we need to create sitecode
+    # Repeat for dem_df
+    if "key" not in dem_df.columns:
+        # sometimes, we have MFL code instead of sitecode, so we need to create sitecode
+        if "sitecode" not in dem_df.columns:
+            dem_df["sitecode"] = dem_df["mflcode"]
+        dem_df["sitecode"] = dem_df["sitecode"].astype(str)
+        # now concatenate
+        dem_df["key"] = dem_df["patientpkhash"] + dem_df["sitecode"]
+        
     dem_df = dem_df[["key", "artoutcomedescription"]]
     # set the values in the artoutcomedescription column to lower case and remove whitespace
     dem_df.loc[:, "artoutcomedescription"] = dem_df.loc[
         :, "artoutcomedescription"
-    ].str.lower()
+    ].str.strip().str.lower()
 
     # merge target_df and dem_df on key
     target_df = target_df.merge(dem_df, on="key", how="left")
+    if "artoutcomedescription" not in target_df.columns:
+        target_df["artoutcomedescription"] = "unknown"
 
     ## Deduplicate clinical and pharmacy data
     #  if there are multiple rows with same key / visitdate, one from clinical and one from pharmacy:
@@ -76,12 +101,16 @@ def create_target(visits_df, pharmacy_df, dem_df):
     target_df = target_df.groupby(["key", "visitdate"]).first().reset_index()
     # drop rows where type is 'pharmacy'
     target_df = target_df[target_df["type"] != "pharmacy"]
+    if target_df.empty:
+        print("No data left after deduplication and filtering.")
+        return pd.DataFrame()
 
     ## Deal with out of order NAD
     # sort the dataframe by key and visitdate in descending order
     target_df = target_df.sort_values(by=["key", "visitdate"], ascending=[True, True])
     # create variable nad2 which for each row is going to be the max nad observed
     # over all earlier touchpoints for that key, meaning the rows below
+    target_df["nad"] = pd.to_datetime(target_df["nad"], errors="coerce")
     target_df["nad2"] = target_df.groupby("key")["nad"].cummax()
 
     # create nad_imputation_flag_ooo column
@@ -157,7 +186,7 @@ def create_target(visits_df, pharmacy_df, dem_df):
 
     # now, vertically stack the two dataframes
     # concatenate the two dataframes
-    target_df = pd.concat([other_visits, most_recent_visit], axis=0)
+    target_df = pd.concat([other_visits, most_recent_visit], axis=0, ignore_index=True)
     # drop the num_visit and actualreturndate columns
     target_df = target_df.drop(
         columns=["num_visit", "actualreturndate", "artoutcomedescription", "type"]
