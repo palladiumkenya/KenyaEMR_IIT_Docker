@@ -16,7 +16,7 @@ class InferenceRequest(BaseModel):
 
 @app.post("/inference")
 def inference(request: InferenceRequest):
-    # try:
+    try:
         result = run_inference_pipeline(
             ppk=request.ppk,
             sc=request.sc,
@@ -29,5 +29,5 @@ def inference(request: InferenceRequest):
         # elif isinstance(result, (np.generic, np.ndarray)):
         #     return {"result": result.item()}
         return {"result": result}
-    # except Exception as e:
-    #     raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
