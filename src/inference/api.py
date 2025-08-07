@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 from pipelines.inference_pipeline import run_inference_pipeline
 import numpy as np
+import traceback
 
 app = FastAPI()
 
@@ -30,4 +31,6 @@ def inference(request: InferenceRequest):
         #     return {"result": result.item()}
         return {"result": result}
     except Exception as e:
+        print("Error: ", e)
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
