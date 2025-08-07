@@ -9,6 +9,9 @@ from src.inference import locational_features_inf
 from src.inference import generate_inference
 from datetime import datetime
 
+def getTime():
+    return(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
 def run_inference_pipeline(ppk = str, sc = str, start_date = str, end_date = str):
 
     # For retraining, prediction is False, so won't add that as argument to parent function
@@ -32,15 +35,15 @@ def run_inference_pipeline(ppk = str, sc = str, start_date = str, end_date = str
     print("DEBUG: dem.shape:", dem.shape)
 
     targets = create_target.create_target(visits, pharmacy, dem)
-    print("DEBUG ",datetime.now() , " TARGETS 1: ", targets.shape)
+    print("DEBUG ",getTime() , " TARGETS 1: ", targets.shape)
     targets = target_features.prep_target_visit_features(targets, visits)
-    print("DEBUG ",datetime.now() , " TARGETS 2: ", targets.shape)
+    print("DEBUG ",getTime() , " TARGETS 2: ", targets.shape)
     targets = target_features.prep_target_pharmacy_features(targets, pharmacy)
-    print("DEBUG ",datetime.now() , " TARGETS 3: ", targets.shape)
+    print("DEBUG ",getTime() , " TARGETS 3: ", targets.shape)
     targets = target_features.prep_target_lab_features(targets, lab)
-    print("DEBUG ",datetime.now() , " TARGETS 4: ", targets.shape)
+    print("DEBUG ",getTime() , " TARGETS 4: ", targets.shape)
     targets = locational_features_inf.get_locational_features(targets)
-    print("DEBUG ",datetime.now() , " TARGETS 5: ", targets.shape)
+    print("DEBUG ",getTime() , " TARGETS 5: ", targets.shape)
     pred = generate_inference.gen_inference(targets)
     print(pred)
     return pred
