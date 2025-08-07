@@ -7,6 +7,7 @@ from src.common import create_target
 from src.common import target_features
 from src.inference import locational_features_inf
 from src.inference import generate_inference
+from datetime import datetime
 
 def run_inference_pipeline(ppk = str, sc = str, start_date = str, end_date = str):
 
@@ -31,15 +32,15 @@ def run_inference_pipeline(ppk = str, sc = str, start_date = str, end_date = str
     print("DEBUG: dem.shape:", dem.shape)
 
     targets = create_target.create_target(visits, pharmacy, dem)
-    print("DEBUG TARGETS 1: ", targets.shape)
+    print("DEBUG ",datetime.now() , " TARGETS 1: ", targets.shape)
     targets = target_features.prep_target_visit_features(targets, visits)
-    print("DEBUG TARGETS 2: ", targets.shape)
+    print("DEBUG ",datetime.now() , " TARGETS 2: ", targets.shape)
     targets = target_features.prep_target_pharmacy_features(targets, pharmacy)
-    print("DEBUG TARGETS 3: ", targets.shape)
+    print("DEBUG ",datetime.now() , " TARGETS 3: ", targets.shape)
     targets = target_features.prep_target_lab_features(targets, lab)
-    print("DEBUG TARGETS 4: ", targets.shape)
+    print("DEBUG ",datetime.now() , " TARGETS 4: ", targets.shape)
     targets = locational_features_inf.get_locational_features(targets)
-    print("DEBUG TARGETS 5: ", targets.shape)
+    print("DEBUG ",datetime.now() , " TARGETS 5: ", targets.shape)
     pred = generate_inference.gen_inference(targets, sc)
     print(pred)
     return pred
