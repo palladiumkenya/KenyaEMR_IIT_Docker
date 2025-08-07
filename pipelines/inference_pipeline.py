@@ -15,6 +15,9 @@ def getTime():
 =======
 >>>>>>> e64fea5 (mods)
 
+def getTime():
+    return(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
 def run_inference_pipeline(ppk = str, sc = str, start_date = str, end_date = str):
 
     # For retraining, prediction is False, so won't add that as argument to parent function
