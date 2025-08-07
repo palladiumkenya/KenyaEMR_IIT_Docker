@@ -8,9 +8,12 @@ from src.common import target_features
 from src.inference import locational_features_inf
 from src.inference import generate_inference
 from datetime import datetime
+<<<<<<< HEAD
 
 def getTime():
     return(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+=======
+>>>>>>> e64fea5 (mods)
 
 def run_inference_pipeline(ppk = str, sc = str, start_date = str, end_date = str):
 
