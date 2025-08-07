@@ -158,12 +158,22 @@ def gen_inference(df, sitecode):
     # if lateness_last5 is greater than 0, return lateness_last5,
     # if most_recent_vl is "unsuppressed", return "unsuppressed",
     if pred_cat in ["high", "medium"]:
+        adherence_val = final_df["adherence"].iloc[0]
+        if pd.isna(adherence_val):
+            adherence = None
+        elif adherence_val == 1:
+            adherence = "good"
+        elif adherence_val == 0:
+            adherence = "poor"
+        else:
+            adherence = None
         risk_factors = {
             "avg_days_late_last5visits": final_df["lateness_last5"].iloc[0],
             "months_on_art": final_df["timeonart"].iloc[0],
             "most_recent_viralload": df["most_recent_vl"].iloc[0],
             # if adherence is 1, then return "good", if 0, return "poor", otherwise None
-            "adherence": "good" if final_df["adherence"].iloc[0] == 1 else "poor" if final_df["adherence"].iloc[0] == 0 else None,
+            # "adherence": "good" if final_df["adherence"].iloc[0] == 1 else "poor" if final_df["adherence"].iloc[0] == 0 else None,
+            "adherence": adherence,
             # if visittype is 1, then return "unscheduled visits", otherwise return "no unscheduled visits"
             "unscheduled_visits": "unscheduled visits" if final_df["visittype"].iloc[0] == 1 else "no unscheduled visits",
         }
