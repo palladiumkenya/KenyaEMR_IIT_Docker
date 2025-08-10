@@ -9,7 +9,7 @@ import pickle
 from src.common.feature_dtypes import expected_dtypes
 
 
-def gen_inference(df):
+def gen_inference(df, sitecode):
 
     if df is None or df.empty:
         return {"pred_out": None, "pred_cat": "unavailable"}
@@ -25,17 +25,24 @@ def gen_inference(df):
     # make sure data is sorted by nad in descending order
     df = df.sort_values(by="nad", ascending=False)
 
-    try:
-        df = df.drop(
-            columns=[
-                "key", "visitdate", "nad_imputation_flag", "sitecode",
-                "pregnant_missing", "nad", "breastfeeding_missing",
-                "startartdate", "month", "dayofweek", "timeatfacility",
-            ],
-            errors="ignore"  # safer option than try/except if you’re okay silently skipping
-        )
-    except KeyError as e:
-        print(f"⚠️ Unexpected missing columns during drop: {e}")
+    df = df.drop(
+        columns=[
+            "key",
+            "visitdate",
+            "nad_imputation_flag",
+            "sitecode",
+            "pregnant_missing",
+            "nad",
+            "breastfeeding_missing",
+            "startartdate",
+            "month",
+            "dayofweek",
+            "timeatfacility",
+            "txcurr",
+            "rolling_weighted_noshow",
+            "rolling_weighted_dayslate"
+        ]
+    )
 
     # filter to emr in kenyamer and ecare
     df = df[df["emr"].isin(["kenyaemr", "ecare"])]
@@ -127,8 +134,28 @@ def gen_inference(df):
         print(f"❌ Prediction failed: {e}")
         return {"pred_out": None, "pred_cat": "unavailable"}
 
-    # load thresholds from models/thresholds.pkl
-    thresholds_file = "models/thresholds_latest.pkl"
+    # # load thresholds from models/thresholds.pkl
+    # thresholds_file = "models/thresholds_latest.pkl"
+    # if not os.path.exists(thresholds_file):
+    #     raise FileNotFoundError(
+    #         f"Thresholds file {thresholds_file} not found. Please train the model first."
+    #     )
+    # with open(thresholds_file, "rb") as f:
+    #     thresholds = pickle.load(f)
+
+    # apply thresholds to pred_cat
+    # if pred is greater than thresholds['high'], pred_cat returns 'high',
+    # else if pred is greater than thresholds['medium'], return 'medium',
+    # else return 'low'
+    # if pred_out > thresholds["high"]:
+    #     pred_cat = "high"
+    # elif pred_out > thresholds["medium"]:
+    #     pred_cat = "medium"
+    # else:
+    #     pred_cat = "low"
+
+    # load site thresholds
+    thresholds_file = "models/site_thresholds_latest.pkl"
     if not os.path.exists(thresholds_file):
         raise FileNotFoundError(
             f"Thresholds file {thresholds_file} not found. Please train the model first."
@@ -136,13 +163,13 @@ def gen_inference(df):
     with open(thresholds_file, "rb") as f:
         thresholds = pickle.load(f)
 
-    # apply thresholds to pred_cat
-    # if pred is greater than thresholds['high'], pred_cat returns 'high',
-    # else if pred is greater than thresholds['medium'], return 'medium',
-    # else return 'low'
-    if pred_out > thresholds["high"]:
+    # get thresholds for the site
+    site_thresholds = thresholds.get(sitecode, thresholds["19735"])
+
+    # apply site-specific thresholds to pred_cat
+    if pred_out > site_thresholds["high"]:
         pred_cat = "high"
-    elif pred_out > thresholds["medium"]:
+    elif pred_out > site_thresholds["medium"]:
         pred_cat = "medium"
     else:
         pred_cat = "low"
