@@ -42,12 +42,18 @@ def refresh_model(pipeline=False, targets_df=None, targets_aws=None, refresh_dat
     # filter out where nad imputation flag is 1
     df = df[df["nad_imputation_flag"] == 0]
 
+    # filter to emr in kenyamer and ecare
+    df = df[df["emr"].isin(["kenyaemr", "ecare"])]
+    # Emr: KenyaEMR -> 1, else 0
+    df["emr"] = (df["emr"] == "kenyaemr").astype("Int64")
+
+    # get each patientpkhash and sitecode and save to file
     df = df.drop(
         columns=[
             "key",
             "visitdate",
             "nad_imputation_flag",
-            "sitecode",
+            # "sitecode",
             "pregnant_missing",
             "breastfeeding_missing",
             "startartdate",
@@ -56,13 +62,31 @@ def refresh_model(pipeline=False, targets_df=None, targets_aws=None, refresh_dat
             "timeatfacility",
             "code",
             "county",
+            "txcurr",
+            "rolling_weighted_noshow",
+            "rolling_weighted_dayslate",
+            # "kephlevel",
+            # "facilitytypecategory",
+            # "ownertype",
+            # "men_knowledge",
+            # "women_knowledge",
+            # "men_heardaids",
+            # "men_highrisksex",
+            # "men_highrisksex_multi",
+            # "men_sexnotwithpartner",
+            # "men_sexpartners",
+            # "men_nevertested",
+            # "men_testedrecent",
+            # "men_sti",
+            # "women_highrisksex",
+            # "women_highrisksex_multi",
+            # "women_sexnotwithpartner",
+            # "women_sexpartners",
+            # "women_nevertested",
+            # "women_testedrecent",
+            # "women_sti"
         ]
     )
-
-    # filter to emr in kenyamer and ecare
-    df = df[df["emr"].isin(["kenyaemr", "ecare"])]
-    # Emr: KenyaEMR -> 1, else 0
-    df["emr"] = (df["emr"] == "kenyaemr").astype("Int64")
 
     # make sure all column names are lowercase and no whitespace
     df.columns = df.columns.str.lower().str.replace(" ", "_")
@@ -72,7 +96,11 @@ def refresh_model(pipeline=False, targets_df=None, targets_aws=None, refresh_dat
         if col in df.columns:
             df[col] = df[col].astype(dtype)
 
-    categorical_columns = df.select_dtypes(include=["object"]).columns.tolist()
+    # categorical_columns = df.select_dtypes(include=["object"]).columns.tolist()
+    categorical_columns = [
+        c for c in df.select_dtypes(include=["object"]).columns
+        if c not in ("sitecode", "iit")
+    ]
 
     ohe = OneHotEncoder(drop="first", handle_unknown="ignore")
     ohe.fit(df[categorical_columns])
@@ -84,40 +112,44 @@ def refresh_model(pipeline=False, targets_df=None, targets_aws=None, refresh_dat
     # Save the refreshed encoder as latest to be used in inference
     shutil.copyfile(f"models/ohe_{timestamp}.pkl", "models/ohe_latest.pkl")
 
-    def encode_xgboost(df, start_date, end_date):
+    def encode_xgboost(df, start_date, end_date, save_feature_order):
 
         # Filter the DataFrame to include only the rows within the specified date range
-        df = df[(df["nad"] >= start_date) & (df["nad"] <= end_date)]
-        # Drop the 'nad' column from the DataFrame
-        df = df.drop(columns=["nad"])
+        # slice by date
+        mask = (df["nad"] >= start_date) & (df["nad"] <= end_date)
+        df_slice = df.loc[mask].copy()
 
-        # One-hot encode the categorical columns
-        encoded_features = ohe.transform(df[categorical_columns]).toarray()
-        encoded_feature_names = ohe.get_feature_names_out(categorical_columns)
+        # stash sitecodes in the same row order as features/preds
+        sitecodes = df_slice["sitecode"].values
 
-        # Create a DataFrame with the encoded features
-        encoded_df = pd.DataFrame(
-            encoded_features, columns=encoded_feature_names, index=df.index
-        )
+        # drop non-feature cols before encoding
+        df_slice = df_slice.drop(columns=["nad", "sitecode"])
 
-        # Concatenate the encoded features with the original DataFrame
-        final_df = pd.concat([df.drop(columns=categorical_columns), encoded_df], axis=1)
+        # one-hot encode categorical cols (may be empty)
+        if categorical_columns:
+            encoded = ohe.transform(df_slice[categorical_columns]).toarray()
+            encoded_cols = ohe.get_feature_names_out(categorical_columns)
+            enc_df = pd.DataFrame(encoded, columns=encoded_cols, index=df_slice.index)
+            final_df = pd.concat([df_slice.drop(columns=categorical_columns), enc_df], axis=1)
+        else:
+            final_df = df_slice
 
         feature_order = list(final_df.columns)
-        with open("models/feature_order.pkl", "wb") as f:
-            pickle.dump(feature_order, f)
+        if save_feature_order:
+            with open("models/feature_order.pkl", "wb") as f:
+                pickle.dump(feature_order, f)
 
         # convert to xgb.Dmatrix
         xgb_df = xgb.DMatrix(data=final_df.drop(columns=["iit"]), label=final_df["iit"])
 
-        return xgb_df
+        return xgb_df, sitecodes
 
     # encoded dataset
-    dtrain = encode_xgboost(
-        df, start_date=after, end_date=refresh_date - pd.DateOffset(months=1)
+    dtrain, _ = encode_xgboost(
+        df, start_date=after, end_date=refresh_date - pd.DateOffset(months=1), save_feature_order=True
     )
-    dval = encode_xgboost(
-        df, start_date=refresh_date - pd.DateOffset(months=1), end_date=refresh_date
+    dval, dval_sitecodes = encode_xgboost(
+        df, start_date=refresh_date - pd.DateOffset(months=1), end_date=refresh_date, save_feature_order=False
     )
 
     params = {
@@ -147,9 +179,66 @@ def refresh_model(pipeline=False, targets_df=None, targets_aws=None, refresh_dat
 
     # Generate predictions on the validation set
     preds = gb_model.predict(dval)
+    # save preds to a csv file
+    preds_df = pd.DataFrame({"sitecode": dval_sitecodes, "preds": preds})
+
+    # Let's set global thresholds for low-volume sites and site-specific thresholds
+    # for the sites with the 100 highest volume of patients
+    # get the 100 highest volume sites
+    top_sites = df["sitecode"].value_counts().nlargest(100).index.tolist()
+    top_preds = preds_df[preds_df["sitecode"].isin(top_sites)]
+
+    # for each of these sites, get the 75th and 50th percentiles of the predictions
+    site_thresholds = {}
+    for site in top_sites:
+        site_preds = top_preds[top_preds["sitecode"] == site]["preds"]
+        if not site_preds.empty:
+            threshold_high = site_preds.quantile(0.75)
+            threshold_medium = site_preds.quantile(0.5)
+            site_thresholds[site] = {
+                "high": threshold_high,
+                "medium": threshold_medium,
+            }
+    
+    # now, get global thresholds for low-volume sites and add them to site_thresholds
+    global_thresholds = {
+        "high": pd.Series(preds).quantile(0.75),
+        "medium": pd.Series(preds).quantile(0.5),
+    }
+    
+    # add global thresholds to site_thresholds for low-volume sites
+    for site in df["sitecode"].unique():
+        if site not in site_thresholds:
+            site_thresholds[site] = global_thresholds         
+
+    # for each row in preds_df, assign the site-specific thresholds
+    preds_df["thresholds"] = preds_df["sitecode"].map(site_thresholds)
+
+    # apply thresholds to pred_cat
+    def categorize_prediction(row):
+        pred = row["preds"]
+        thresholds = row["thresholds"]
+        if pred > thresholds["high"]:
+            return "high"
+        elif pred > thresholds["medium"]:
+            return "medium"
+        else:
+            return "low"
+
+    preds_df["pred_cat"] = preds_df.apply(categorize_prediction, axis=1)
+    # save preds_df to a csv file with timestamp and as latest
+    preds_df.to_csv(f"models/preds_{timestamp}.csv", index=False)
+
+    # save the site-specific thresholds to a file with timestamp and as latest
+    with open(f"models/site_thresholds_{timestamp}.pkl", "wb") as f:
+        pickle.dump(site_thresholds, f)
+    shutil.copyfile(f"models/site_thresholds_{timestamp}.pkl", "models/site_thresholds_latest.pkl")
+
+
     # get the 25th percentile of the predictions
     threshold_high = pd.Series(preds).quantile(0.75)
     threshold_medium = pd.Series(preds).quantile(0.5)
+    print(f"Thresholds: high={threshold_high}, medium={threshold_medium}")
     # combine thresholds into a dictionary
     thresholds = {
         "high": threshold_high,

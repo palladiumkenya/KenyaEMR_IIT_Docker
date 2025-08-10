@@ -10,7 +10,7 @@ import pickle
 from src.common.feature_dtypes import expected_dtypes
 
 
-def gen_inference(df):
+def gen_inference(df, sitecode):
 
     # make sure nad is a datetime
     df["nad"] = pd.to_datetime(df["nad"], format="%Y-%m-%d")
@@ -30,6 +30,9 @@ def gen_inference(df):
             "month",
             "dayofweek",
             "timeatfacility",
+            "txcurr",
+            "rolling_weighted_noshow",
+            "rolling_weighted_dayslate"
         ]
     )
 
@@ -97,8 +100,28 @@ def gen_inference(df):
     preds = bst.predict(xgb_df)
     pred_out = preds[0]
 
-    # load thresholds from models/thresholds.pkl
-    thresholds_file = "models/thresholds.pkl"
+    # # load thresholds from models/thresholds.pkl
+    # thresholds_file = "models/thresholds_latest.pkl"
+    # if not os.path.exists(thresholds_file):
+    #     raise FileNotFoundError(
+    #         f"Thresholds file {thresholds_file} not found. Please train the model first."
+    #     )
+    # with open(thresholds_file, "rb") as f:
+    #     thresholds = pickle.load(f)
+
+    # apply thresholds to pred_cat
+    # if pred is greater than thresholds['high'], pred_cat returns 'high',
+    # else if pred is greater than thresholds['medium'], return 'medium',
+    # else return 'low'
+    # if pred_out > thresholds["high"]:
+    #     pred_cat = "high"
+    # elif pred_out > thresholds["medium"]:
+    #     pred_cat = "medium"
+    # else:
+    #     pred_cat = "low"
+
+    # load site thresholds
+    thresholds_file = "models/site_thresholds_latest.pkl"
     if not os.path.exists(thresholds_file):
         raise FileNotFoundError(
             f"Thresholds file {thresholds_file} not found. Please train the model first."
@@ -106,13 +129,13 @@ def gen_inference(df):
     with open(thresholds_file, "rb") as f:
         thresholds = pickle.load(f)
 
-    # apply thresholds to pred_cat
-    # if pred is greater than thresholds['high'], pred_cat returns 'high',
-    # else if pred is greater than thresholds['medium'], return 'medium',
-    # else return 'low'
-    if pred_out > thresholds["high"]:
+    # get thresholds for the site
+    site_thresholds = thresholds.get(sitecode, thresholds["19735"])
+
+    # apply site-specific thresholds to pred_cat
+    if pred_out > site_thresholds["high"]:
         pred_cat = "high"
-    elif pred_out > thresholds["medium"]:
+    elif pred_out > site_thresholds["medium"]:
         pred_cat = "medium"
     else:
         pred_cat = "low"
