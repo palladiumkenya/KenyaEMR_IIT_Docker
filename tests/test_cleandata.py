@@ -154,6 +154,7 @@ def test_clean_visits_date_parsing():
     dem_df = pd.DataFrame(
         {
             "key": ["hash1" + "123"],
+            "sitecode": ["123"],
             "sex": ["M"],
             "maritalstatus": ["Single"],
             "educationlevel": ["High School"],
@@ -196,6 +197,7 @@ def test_clean_visits_date_range_filter():
     dem_df = pd.DataFrame(
         {
             "key": ["hash1" + "123"],
+            "sitecode": ["123"],
             "sex": ["M"],
             "maritalstatus": ["Single"],
             "educationlevel": ["High School"],

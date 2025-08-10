@@ -2,7 +2,6 @@ import xgboost as xgb
 from sklearn.preprocessing import OneHotEncoder
 from datetime import datetime
 import random
-import boto3
 import io
 import os
 import pandas as pd
@@ -11,6 +10,15 @@ from src.common.feature_dtypes import expected_dtypes
 
 
 def gen_inference(df, sitecode):
+
+    if df is None or df.empty:
+        return {"pred_out": None, "pred_cat": "unavailable"}
+
+    required_cols = ["nad", "iit"]
+    missing = [col for col in required_cols if col not in df.columns]
+    if missing:
+        print(f"Missing required column(s): {missing} — cannot proceed with inference.")
+        return {"pred_out": None, "pred_cat": "unavailable"}
 
     # make sure nad is a datetime
     df["nad"] = pd.to_datetime(df["nad"], format="%Y-%m-%d")
@@ -46,7 +54,10 @@ def gen_inference(df, sitecode):
     # ensure columns are right dtypes
     for col, dtype in expected_dtypes.items():
         if col in df.columns:
-            df[col] = df[col].astype(dtype)
+            if dtype in [float, "float", "float64", int, "int", "int64"]:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+            else:
+                df[col] = df[col].astype(dtype)
 
     # load encoder which is called ohe_latest.pkl
     # from the models directory
@@ -67,7 +78,11 @@ def gen_inference(df, sitecode):
     categorical_columns = df.select_dtypes(include=["object"]).columns.tolist()
 
     # One-hot encode the categorical columns
-    encoded_features = ohe.transform(df[categorical_columns]).toarray()
+    try:
+        encoded_features = ohe.transform(df[categorical_columns]).toarray()
+    except Exception as e:
+        print(f"OneHotEncoding failed: {e}")
+        return {"pred_out": None, "pred_cat": "unavailable"}
     encoded_feature_names = ohe.get_feature_names_out(categorical_columns)
 
     # Create a DataFrame with the encoded features
@@ -81,7 +96,11 @@ def gen_inference(df, sitecode):
     # make sure the columns are in the right order
     with open("models/feature_order.pkl", "rb") as f:
         feature_order = pickle.load(f)
-    final_df = final_df[feature_order]
+    try:
+        final_df = final_df[feature_order]
+    except KeyError as e:
+        print(f"❌ Feature mismatch: some expected columns are missing: {e}")
+        return {"pred_out": None, "pred_cat": "unavailable"}
 
     # convert to xgb.Dmatrix
     xgb_df = xgb.DMatrix(data=final_df.drop(columns=["iit"]), label=final_df["iit"])
@@ -97,30 +116,14 @@ def gen_inference(df, sitecode):
     bst.load_model(model)
 
     # make prediction
-    preds = bst.predict(xgb_df)
-    pred_out = preds[0]
+    try:
+        preds = bst.predict(xgb_df)
+        pred_out = preds[0].item()
+    except Exception as e:
+        print(f"❌ Prediction failed: {e}")
+        return {"pred_out": None, "pred_cat": "unavailable"}
 
-    # # load thresholds from models/thresholds.pkl
-    # thresholds_file = "models/thresholds_latest.pkl"
-    # if not os.path.exists(thresholds_file):
-    #     raise FileNotFoundError(
-    #         f"Thresholds file {thresholds_file} not found. Please train the model first."
-    #     )
-    # with open(thresholds_file, "rb") as f:
-    #     thresholds = pickle.load(f)
-
-    # apply thresholds to pred_cat
-    # if pred is greater than thresholds['high'], pred_cat returns 'high',
-    # else if pred is greater than thresholds['medium'], return 'medium',
-    # else return 'low'
-    # if pred_out > thresholds["high"]:
-    #     pred_cat = "high"
-    # elif pred_out > thresholds["medium"]:
-    #     pred_cat = "medium"
-    # else:
-    #     pred_cat = "low"
-
-    # load site thresholds
+    # load thresholds from models/thresholds.pkl
     thresholds_file = "models/site_thresholds_latest.pkl"
     if not os.path.exists(thresholds_file):
         raise FileNotFoundError(
@@ -140,9 +143,27 @@ def gen_inference(df, sitecode):
     else:
         pred_cat = "low"
 
+    # if pred_cat is high or medium, return risk factors from final_df including:
+    # if lateness_last5 is greater than 0, return lateness_last5,
+    # if most_recent_vl is "unsuppressed", return "unsuppressed",
+    if pred_cat in ["high", "medium"]:
+        risk_factors = {
+            "avg_days_late_last5visits": final_df["lateness_last5"].iloc[0],
+            "months_on_art": final_df["timeonart"].iloc[0],
+            "most_recent_viralload": df["most_recent_vl"].iloc[0],
+            # if adherence is 1, then return "good", if 0, return "poor", otherwise None
+            "adherence": "good" if final_df["adherence"].iloc[0] == 1 else "poor" if final_df["adherence"].iloc[0] == 0 else None,
+            # if visittype is 1, then return "unscheduled visits", otherwise return "no unscheduled visits"
+            "unscheduled_visits": "unscheduled visits" if final_df["visittype"].iloc[0] == 1 else "no unscheduled visits",
+        }
+    else:
+        risk_factors = None
+
     # return pred_out and pred_cat
     pred_out = {
         "pred_out": pred_out,
         "pred_cat": pred_cat,
+        "risk_factors": risk_factors,
+        "evaluation_date": datetime.now().strftime("%Y-%m-%d"),
     }
     return pred_out

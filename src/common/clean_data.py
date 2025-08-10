@@ -12,9 +12,10 @@ def clean_lab(data, start_date):
     # not in the data, but we want to return them anyway
     # the columns are:
     # 'key', 'orderedbydate', 'testname', 'testresultcat'
+    expected_columns = ["key", "orderedbydate", "testname", "testresultcat"]
     if data.empty:
         return pd.DataFrame(
-            columns=["key", "orderedbydate", "testname", "testresultcat"]
+            columns=expected_columns
         )
 
     # if data is not empty, we proceed with cleaning
@@ -34,6 +35,10 @@ def clean_lab(data, start_date):
     start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
     # Filter the data to only include records after the start_date
     data = data[data["orderedbydate"] >= start_date]
+    if data.empty:
+        return pd.DataFrame(
+            columns=expected_columns
+        )
 
     # Let's filter to VLs and CD4
     # First, let's make testname lower case
@@ -57,7 +62,10 @@ def clean_lab(data, start_date):
 
     # Filter the data to only include CD4 and VL tests
     data = data[data["testname"].isin(["CD4", "VL"])]
-
+    if data.empty:
+        return pd.DataFrame(
+            columns=expected_columns
+        )
     # Deduplicate lab data using specialized function
     data = helpers.dedup_lab(data, "key", "orderedbydate", "testname", "testresult")
 
@@ -73,16 +81,10 @@ def clean_pharmacy(data, start_date, end_date):
     # not in the data, but we want to return them anyway
     # the columns are:
     # 'key', 'orderedbydate', 'testname', 'testresultcat'
+    expected_columns = ["key", "sitecode", "dispensedate", "nad_imputed", "nad_imputation_flag", "drug"]
     if data.empty:
         return pd.DataFrame(
-            columns=[
-                "key",
-                "sitecode",
-                "dispensedate",
-                "nad_imputed",
-                "nad_imputation_flag",
-                "drug",
-            ]
+            columns=expected_columns
         )
 
     # make column names lower case
@@ -109,7 +111,10 @@ def clean_pharmacy(data, start_date, end_date):
     end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
     data = data.loc[data["dispensedate"] >= start_date]
     data = data.loc[data["dispensedate"] <= end_date]
-
+    if data.empty:
+        return pd.DataFrame(
+            columns=expected_columns
+        )
     # remove illogical return dates
     data = helpers.remove_date(data, "dispensedate", "expectedreturn")
 
@@ -143,10 +148,7 @@ def clean_visits(data, dem_df, start_date, end_date):
     # not in the data, but we want to return them anyway
     # the columns are:
     # 'key', 'orderedbydate', 'testname', 'testresultcat'
-    if data.empty:
-        return pd.DataFrame(
-            columns=[
-                "patientpkhash",
+    expected_columns = ["patientpkhash",
                 "sitecode",
                 "visitdate",
                 "visittype",
@@ -179,8 +181,10 @@ def clean_visits(data, dem_df, start_date, end_date):
                 "startartdate",
                 "dob",
                 "nad_imputed",
-                "nad_imputation_flag",
-            ]
+                "nad_imputation_flag"]
+    if data.empty:
+        return pd.DataFrame(
+            columns=expected_columns
         )
 
     # make column names lower case
@@ -193,6 +197,15 @@ def clean_visits(data, dem_df, start_date, end_date):
     data["sitecode"] = data["sitecode"].astype(str)
     # now concatenate
     data["key"] = data["patientpkhash"] + data["sitecode"]
+
+    # Repeat for dem_df
+    if "key" not in dem_df.columns:
+        # sometimes, we have MFL code instead of sitecode, so we need to create sitecode
+        if "sitecode" not in dem_df.columns:
+            dem_df["sitecode"] = dem_df["mflcode"]
+        dem_df["sitecode"] = dem_df["sitecode"].astype(str)
+        # now concatenate
+        dem_df["key"] = dem_df["patientpkhash"] + dem_df["sitecode"]
 
     # first, merge visits with demographics (dem) on the "key" column
     data = data.merge(
@@ -230,7 +243,10 @@ def clean_visits(data, dem_df, start_date, end_date):
     end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
     data = data[data["visitdate"] >= start_date]
     data = data[data["visitdate"] <= end_date]
-
+    if data.empty:
+        return pd.DataFrame(
+            columns=expected_columns
+        )
     # remove whitespace from all columns
     data = data.applymap(lambda x: x.strip() if isinstance(x, str) else x)
 
