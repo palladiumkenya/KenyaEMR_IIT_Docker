@@ -10,13 +10,14 @@ Check that these files exist:
 1. /opt/ml/iit/settings.json -- facility specific settings
 2. /opt/ml/iit/locational_variables_latest.csv -- facility location variables
 3. /opt/ml/iit/models/thresholds_latest.pkl -- thresholds
-4. /opt/ml/iit/models/ohe_latest.pkl -- model
-5. /opt/ml/iit/models/mod_latest.pkl -- model
-6. /opt/ml/iit/models/feature_order.pkl -- features
+4. /opt/ml/iit/models/site_thresholds_latest.pkl -- site thresholds
+5. /opt/ml/iit/models/ohe_latest.pkl -- model
+6. /opt/ml/iit/models/mod_latest.pkl -- model
+7. /opt/ml/iit/models/feature_order.pkl -- features
 
 ## Docker run 
 <!-- docker run -p 8000:8000 kenyaemr-inference -->
-1. docker run -v /opt/ml/iit/settings.json:/data/settings.json -v /opt/ml/iit/locational_variables_latest.csv:/data/locational_variables_latest.csv -v /opt/ml/iit/models/thresholds_latest.pkl:/models/thresholds_latest.pkl -v /opt/ml/iit/models/ohe_latest.pkl:/models/ohe_latest.pkl -v /opt/ml/iit/models/mod_latest.pkl:/models/mod_latest.pkl -v /opt/ml/iit/models/feature_order.pkl:/models/feature_order.pkl --add-host=host.docker.internal:host-gateway -p 8000:8000 kenyaemr-inference
+1. docker run -v /opt/ml/iit/settings.json:/data/settings.json -v /opt/ml/iit/locational_variables_latest.csv:/data/locational_variables_latest.csv -v /opt/ml/iit/models/thresholds_latest.pkl:/models/thresholds_latest.pkl -v /opt/ml/iit/models/site_thresholds_latest.pkl:/models/site_thresholds_latest.pkl -v /opt/ml/iit/models/ohe_latest.pkl:/models/ohe_latest.pkl -v /opt/ml/iit/models/mod_latest.pkl:/models/mod_latest.pkl -v /opt/ml/iit/models/feature_order.pkl:/models/feature_order.pkl --add-host=host.docker.internal:host-gateway -p 8000:8000 kenyaemr-inference
 
 ## Or Docker Compose
 #### With local rebuild
