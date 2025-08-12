@@ -3,7 +3,7 @@ import mysql.connector
 from mysql.connector import Error
 import pandas as pd
 
-def load_settings(path='/data/settings.json'):
+def load_settings(path='data/settings.json'):
     try:
         with open(path, 'r') as f:
             config = json.load(f)

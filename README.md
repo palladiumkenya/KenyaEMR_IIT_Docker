@@ -13,11 +13,12 @@ Check that these files exist:
 4. /opt/ml/iit/models/site_thresholds_latest.pkl -- site thresholds
 5. /opt/ml/iit/models/ohe_latest.pkl -- model
 6. /opt/ml/iit/models/mod_latest.pkl -- model
-7. /opt/ml/iit/models/feature_order.pkl -- features
+7. /opt/ml/iit/models/mod_latest.json -- model
+8. /opt/ml/iit/models/feature_order.pkl -- features
 
 ## Docker run 
 <!-- docker run -p 8000:8000 kenyaemr-inference -->
-1. docker run -v /opt/ml/iit/settings.json:/data/settings.json -v /opt/ml/iit/locational_variables_latest.csv:/data/locational_variables_latest.csv -v /opt/ml/iit/models/thresholds_latest.pkl:/models/thresholds_latest.pkl -v /opt/ml/iit/models/site_thresholds_latest.pkl:/models/site_thresholds_latest.pkl -v /opt/ml/iit/models/ohe_latest.pkl:/models/ohe_latest.pkl -v /opt/ml/iit/models/mod_latest.pkl:/models/mod_latest.pkl -v /opt/ml/iit/models/feature_order.pkl:/models/feature_order.pkl --add-host=host.docker.internal:host-gateway -p 8000:8000 kenyaemr-inference
+1. docker run -v /opt/ml/iit/settings.json:/app/data/settings.json -v /opt/ml/iit/locational_variables_latest.csv:/app/data/locational_variables_latest.csv -v /opt/ml/iit/models/thresholds_latest.pkl:/app/models/thresholds_latest.pkl -v /opt/ml/iit/models/site_thresholds_latest.pkl:/app/models/site_thresholds_latest.pkl -v /opt/ml/iit/models/ohe_latest.pkl:/app/models/ohe_latest.pkl -v /opt/ml/iit/models/mod_latest.pkl:/app/models/mod_latest.pkl -v /opt/ml/iit/models/mod_latest.json:/app/models/mod_latest.json -v /opt/ml/iit/models/feature_order.pkl:/app/models/feature_order.pkl --add-host=host.docker.internal:host-gateway -p 8000:8000 kenyaemr-inference
 
 ## Or Docker Compose
 #### With local rebuild
