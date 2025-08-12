@@ -4,7 +4,7 @@ import json
 import mysql.connector
 from mysql.connector import Error
 
-def load_settings(path='/data/settings.json'):
+def load_settings(path='data/settings.json'):
     try:
         with open(path, 'r') as f:
             config = json.load(f)

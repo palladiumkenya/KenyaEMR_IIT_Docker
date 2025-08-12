@@ -8,8 +8,10 @@ ENV PYTHONPATH=/app
 COPY pipelines /app/pipelines/
 COPY models/feature_order.pkl /app/models/feature_order.pkl
 COPY models/mod_latest.json /app/models/mod_latest.json
+COPY models/mod_latest.pkl /app/models/mod_latest.pkl
 COPY models/ohe_latest.pkl /app/models/ohe_latest.pkl
 COPY models/thresholds_latest.pkl /app/models/thresholds_latest.pkl
+COPY models/site_thresholds_latest.pkl /app/models/site_thresholds_latest.pkl
 COPY src /app/src/
 COPY data /app/data/
 COPY requirements-inference.txt /app/
